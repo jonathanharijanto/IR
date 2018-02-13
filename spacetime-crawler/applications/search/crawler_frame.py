@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from urlparse import urlparse, parse_qs
 from uuid import uuid4
+import tldextract
 
 logger = logging.getLogger(__name__)
 LOG_HEADER = "[CRAWLER]"
@@ -48,6 +49,8 @@ class CrawlerFrame(IApplication):
     
 def extract_next_links(rawDataObj):
     outputLinks = []
+    subdomainslist = []
+    invalidlinks = 0
     '''
     rawDataObj is an object of type UrlResponse declared at L20-30
     datamodel/search/server_datamodel.py
@@ -55,13 +58,47 @@ def extract_next_links(rawDataObj):
     Validation of link via is_valid function is done later (see line 42).
     It is not required to remove duplicates that have already been downloaded. 
     The frontier takes care of that.
-    
     Suggested library: lxml
     '''
-    if rawDataObj.http_code == 200:
-            #and rawDataObj.content != None:
+    # Count the # of invalid links
+    if rawDataObj.http_code != 200:
+        invalidlinks += 1
+    elif rawDataObj.http_code == 200:
+        # Parse the document from the given input
         root = html.fromstring(rawDataObj.content)
-        outputLinks = root.xpath("//a/@href")
+        # Extract the content of a tree (specifically, href)
+        urls = root.xpath("//a/@href")
+        # ======= Debugging purpose =======
+        print "The list of RAW links (extracted directly from content):"
+        print urls
+        # =================================
+        # Go through each url
+        for url in urls:
+            # Parse into (scheme, netloc, path, params, query, fragment)
+            parsed = urlparse(rawDataObj.url)
+            # Concatenate the "url"
+            if "http" in url or "https" in url:
+                outputLinks.append(url)
+                # Get the subdomain from a link
+                extractedsubdom = tldextract.extract(url).subdomain
+                # Remove any subdomain that's empty or just "www"
+                if extractedsubdom != '' and extractedsubdom != 'www':
+                    # trim the "www" from the subdomain
+                    subdomainslist.append(extractedsubdom.replace("www.",''))
+            else:
+                # Replace any "./path" into "/path"
+                if url[0] == '.':
+                    url = url.replace(".", "")
+                cleanurl = parsed.scheme + '://' + parsed.netloc + url
+                outputLinks.append(cleanurl)
+                extractedsubdom = tldextract.extract(cleanurl).subdomain
+                if extractedsubdom != '' and extractedsubdom != 'www':
+                    subdomainslist.append(extractedsubdom.replace("www.",''))
+        print "The list of VALID (absolute form) links:"
+        print outputLinks
+        print "The list of subdomains:"
+        print subdomainslist
+        print "The number of out links: " + str(len(outputLinks))
     return outputLinks
 
 def is_valid(url):
