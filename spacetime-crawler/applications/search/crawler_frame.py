@@ -46,11 +46,12 @@ class CrawlerFrame(IApplication):
         print (
             "Time time spent this session: ",
             time() - self.starttime, " seconds.")
-    
+
 def extract_next_links(rawDataObj):
     outputLinks = []
     subdomainslist = []
     invalidlinks = 0
+    # testtest
     '''
     rawDataObj is an object of type UrlResponse declared at L20-30
     datamodel/search/server_datamodel.py
