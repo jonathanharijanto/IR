@@ -7,7 +7,7 @@ import re, os
 from time import time
 from uuid import uuid4
 
-from urlparse import urlparse, parse_qs
+from urlparse import urlparse, parse_qs, urljoin
 from uuid import uuid4
 import tldextract
 
@@ -49,7 +49,7 @@ class CrawlerFrame(IApplication):
 
 def extract_next_links(rawDataObj):
     outputLinks = []
-    subdomainslist = []
+    subdomainlist = []
     invalidlinks = 0
     '''
     rawDataObj is an object of type UrlResponse declared at L20-30
@@ -61,45 +61,37 @@ def extract_next_links(rawDataObj):
     Suggested library: lxml
     '''
     try:
-        # Count the # of invalid links
-        if rawDataObj.http_code != 200:
-            invalidlinks += 1
-        elif rawDataObj.http_code == 200:
+        # If http status code is OK
+        if rawDataObj.http_code == 200:
             # Parse the document from the given input
             root = html.fromstring(rawDataObj.content)
             # Extract the content of a tree (specifically, href)
-            urls = root.xpath("//a/@href")
+            urls = root.xpath("/html/body//a/@href")
+
             print "The list of RAW links (extracted directly from content):"
             print urls
-            # Go through each url
+
             for url in urls:
-                # Parse into (scheme, netloc, path, params, query, fragment)
-                parsed = urlparse(rawDataObj.url)
-                # Concatenate the "url"
-                if "http" in url or "https" in url:
-                    outputLinks.append(url)
-                    # Get the subdomain from a link
+                outputLinks.append(urljoin(rawDataObj.url, url))
+                if "http://" in url or "https://" in url:
                     extractedsubdom = tldextract.extract(url).subdomain
-                    # Remove any subdomain that's empty or just "www"
-                    if extractedsubdom != '' and extractedsubdom != 'www':
-                        # trim the "www" from the subdomain
-                        subdomainslist.append(extractedsubdom.replace("www.",''))
-                else:
-                    # Replace any "./path" into "/path"
-                    if url[0] == '.':
-                        url = url.replace(".", "")
-                    cleanurl = parsed.scheme + '://' + parsed.netloc + url
-                    outputLinks.append(cleanurl)
-                    extractedsubdom = tldextract.extract(cleanurl).subdomain
-                    if extractedsubdom != '' and extractedsubdom != 'www':
-                        subdomainslist.append(extractedsubdom.replace("www.",''))
-            print "The number of INVALID links: " + str(invalidlinks)
+                    cleansubdomain = extractedsubdom.replace("www.",'')
+                    if cleansubdomain != '' and cleansubdomain != 'www' and cleansubdomain not in subdomainlist:
+                        subdomainlist.append(cleansubdomain)
+
             print "The list of VALID (absolute form) links:"
             print outputLinks
             print "The list of subdomains:"
-            print subdomainslist
+            print subdomainlist
             print "The number of out links: " + str(len(outputLinks))
+
+        # If http status code is NOT OK
+        else:
+            invalidlinks += 1
+
+        print "The number of INVALID links: " + str(invalidlinks)
         return outputLinks
+
     except TypeError:
         print ("TypeError for URL: ", rawDataObj.url)
         return False
