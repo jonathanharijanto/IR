@@ -51,7 +51,6 @@ def extract_next_links(rawDataObj):
     outputLinks = []
     subdomainslist = []
     invalidlinks = 0
-    # testtest
     '''
     rawDataObj is an object of type UrlResponse declared at L20-30
     datamodel/search/server_datamodel.py
@@ -61,46 +60,49 @@ def extract_next_links(rawDataObj):
     The frontier takes care of that.
     Suggested library: lxml
     '''
-    # Count the # of invalid links
-    if rawDataObj.http_code != 200:
-        invalidlinks += 1
-    elif rawDataObj.http_code == 200:
-        # Parse the document from the given input
-        root = html.fromstring(rawDataObj.content)
-        # Extract the content of a tree (specifically, href)
-        urls = root.xpath("//a/@href")
-        # ======= Debugging purpose =======
-        print "The list of RAW links (extracted directly from content):"
-        print urls
-        # =================================
-        # Go through each url
-        for url in urls:
-            # Parse into (scheme, netloc, path, params, query, fragment)
-            parsed = urlparse(rawDataObj.url)
-            # Concatenate the "url"
-            if "http" in url or "https" in url:
-                outputLinks.append(url)
-                # Get the subdomain from a link
-                extractedsubdom = tldextract.extract(url).subdomain
-                # Remove any subdomain that's empty or just "www"
-                if extractedsubdom != '' and extractedsubdom != 'www':
-                    # trim the "www" from the subdomain
-                    subdomainslist.append(extractedsubdom.replace("www.",''))
-            else:
-                # Replace any "./path" into "/path"
-                if url[0] == '.':
-                    url = url.replace(".", "")
-                cleanurl = parsed.scheme + '://' + parsed.netloc + url
-                outputLinks.append(cleanurl)
-                extractedsubdom = tldextract.extract(cleanurl).subdomain
-                if extractedsubdom != '' and extractedsubdom != 'www':
-                    subdomainslist.append(extractedsubdom.replace("www.",''))
-        print "The list of VALID (absolute form) links:"
-        print outputLinks
-        print "The list of subdomains:"
-        print subdomainslist
-        print "The number of out links: " + str(len(outputLinks))
-    return outputLinks
+    try:
+        # Count the # of invalid links
+        if rawDataObj.http_code != 200:
+            invalidlinks += 1
+        elif rawDataObj.http_code == 200:
+            # Parse the document from the given input
+            root = html.fromstring(rawDataObj.content)
+            # Extract the content of a tree (specifically, href)
+            urls = root.xpath("//a/@href")
+            print "The list of RAW links (extracted directly from content):"
+            print urls
+            # Go through each url
+            for url in urls:
+                # Parse into (scheme, netloc, path, params, query, fragment)
+                parsed = urlparse(rawDataObj.url)
+                # Concatenate the "url"
+                if "http" in url or "https" in url:
+                    outputLinks.append(url)
+                    # Get the subdomain from a link
+                    extractedsubdom = tldextract.extract(url).subdomain
+                    # Remove any subdomain that's empty or just "www"
+                    if extractedsubdom != '' and extractedsubdom != 'www':
+                        # trim the "www" from the subdomain
+                        subdomainslist.append(extractedsubdom.replace("www.",''))
+                else:
+                    # Replace any "./path" into "/path"
+                    if url[0] == '.':
+                        url = url.replace(".", "")
+                    cleanurl = parsed.scheme + '://' + parsed.netloc + url
+                    outputLinks.append(cleanurl)
+                    extractedsubdom = tldextract.extract(cleanurl).subdomain
+                    if extractedsubdom != '' and extractedsubdom != 'www':
+                        subdomainslist.append(extractedsubdom.replace("www.",''))
+            print "The number of INVALID links: " + str(invalidlinks)
+            print "The list of VALID (absolute form) links:"
+            print outputLinks
+            print "The list of subdomains:"
+            print subdomainslist
+            print "The number of out links: " + str(len(outputLinks))
+        return outputLinks
+    except TypeError:
+        print ("TypeError for URL: ", rawDataObj.url)
+        return False
 
 def is_valid(url):
     '''
