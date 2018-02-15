@@ -20,6 +20,8 @@ logging.basicConfig(filename='output.log', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 LOG_HEADER = "[CRAWLER]"
 
+PagesCounter = 0
+
 @Producer(QiushibaiAvinashkumarKyungwoohyunJonathanharijantoLink)
 @GetterSetter(OneQiushibaiAvinashkumarKyungwoohyunJonathanharijantoUnProcessedLink)
 @ServerTriggers(add_server_copy, get_downloaded_content)
