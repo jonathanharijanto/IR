@@ -58,79 +58,89 @@ class CrawlerFrame(IApplication):
 
 def extract_next_links(rawDataObj):
     global PagesCounter
+    global outlinksCounter
+    global sd_dictionary
+    global pagemostoutlinks
 
     print "Totally crawled pages: ", PagesCounter
     logging.info("Totally crawled pages: " + str(PagesCounter))
 
     outputLinks = []
-    subdomainlist = []
     invalidlinks = 0
-    '''
-    rawDataObj is an object of type UrlResponse declared at L20-30
-    datamodel/search/server_datamodel.py
-    the return of this function should be a list of urls in their absolute form
-    Validation of link via is_valid function is done later (see line 42).
-    It is not required to remove duplicates that have already been downloaded. 
-    The frontier takes care of that.
-    Suggested library: lxml
-    '''
 
-    print "rawDataObj.url = ", rawDataObj.url
-    # print "rawDataObj.content", rawDataObj.content
-    print "rawDataObj.error_message = ", rawDataObj.error_message
-    print "rawDataObj.headers = ", rawDataObj.headers
-    print "rawDataObj.http_code = ", rawDataObj.http_code
-    print "rawDataObj.is_redirected = ", rawDataObj.is_redirected
-    print "rawDataObj.final_url = ", rawDataObj.final_url
+    #print "rawDataObj.url = ", rawDataObj.url
+    #print "rawDataObj.content", rawDataObj.content
+    #print "rawDataObj.error_message = ", rawDataObj.error_message
+    #print "rawDataObj.headers = ", rawDataObj.headers
+    #print "rawDataObj.http_code = ", rawDataObj.http_code
+    #print "rawDataObj.is_redirected = ", rawDataObj.is_redirected
+    #print "rawDataObj.final_url = ", rawDataObj.final_url
 
-    try:
-        logging.info("rawDataObj.url = " + str(rawDataObj.url))
-        logging.info("rawDataObj.content = " + str(rawDataObj.content))
-        logging.info("rawDataObj.error_message = " + str(rawDataObj.error_message))
-        logging.info("rawDataObj.headers = " + str(rawDataObj.headers))
-        logging.info("rawDataObj.http_code = " + str(rawDataObj.http_code))
-        logging.info("rawDataObj.is_redirected = " + str(rawDataObj.is_redirected))
-        logging.info("rawDataObj.final_url = " + str(rawDataObj.final_url))
-    except TypeError:
-        print ("TypeError for logging: ", TypeError.message)
+    #try:
+    #    logging.info("rawDataObj.url = " + str(rawDataObj.url))
+    #    logging.info("rawDataObj.content = " + str(rawDataObj.content))
+    #    logging.info("rawDataObj.error_message = " + str(rawDataObj.error_message))
+    #    logging.info("rawDataObj.headers = " + str(rawDataObj.headers))
+    #    logging.info("rawDataObj.http_code = " + str(rawDataObj.http_code))
+    #    logging.info("rawDataObj.is_redirected = " + str(rawDataObj.is_redirected))
+    #    logging.info("rawDataObj.final_url = " + str(rawDataObj.final_url))
+    #except TypeError:
+    #    print ("TypeError for logging: ", TypeError.message)
 
     try:
         # If http status code is OK
         if rawDataObj.http_code == 200:
+
+            PagesCounter = PagesCounter + 1
+
+            # Get the subdomain of the url being visited
+            subdomain = extract_subdomain(rawDataObj.url)
+
             # Parse the document from the given input
             root = html.fromstring(rawDataObj.content)
             # Extract the content of a tree (specifically, href)
             urls = root.xpath("/html/body//a/@href")
-
-            # Once we got the content successfully, it means we crawled one page successfully.
-            PagesCounter = PagesCounter + 1
 
             print "The list of RAW links (extracted directly from content):"
             print urls
 
             for url in urls:
                 outputLinks.append(urljoin(rawDataObj.url, url))
-                if "http://" in url or "https://" in url:
-                    extractedsubdom = tldextract.extract(url).subdomain
-                    cleansubdomain = extractedsubdom.replace("www.",'')
-                    if cleansubdomain != '' and cleansubdomain != 'www' and cleansubdomain not in subdomainlist:
-                        subdomainlist.append(cleansubdomain)
 
             print "The list of VALID (absolute form) links:"
             logging.info("The list of VALID (absolute form) links:")
             print '\n'.join(outputLinks)
             logging.info('\n'.join(outputLinks))
-            print "The list of sub domains:"
-            logging.info("The list of sub domains:")
-            print '\n'.join(subdomainlist)
-            logging.info('\n'.join(subdomainlist))
+            #print "The list of sub domains:"
+            #logging.info("The list of sub domains:")
+            #print '\n'.join(subdomainlist)
+            #logging.info('\n'.join(subdomainlist))
+
+            # ANALYTICS 2 - Find the page with the most outlinks
+            if outlinksCounter < len(outputLinks):
+                outlinksCounter = len(outputLinks)
+                pagemostoutlinks = rawDataObj.url
             print "The number of out links: " + str(len(outputLinks))
             logging.info("The number of out links: " + str(len(outputLinks)))
+            print "The most out links (so far): " + str(outlinksCounter)
+            print "The page name is: " + pagemostoutlinks
+            logging.info("The most out links (so far): " + str(outlinksCounter))
+            logging.info("The page name is: " + pagemostoutlinks)
+
+            # ANALYTIC 1 - keep track all the subdomains visited + URLs processed from each subdomains
+            if subdomain != '' and subdomain != 'www':
+                if subdomain in sd_dictionary:
+                    sd_dictionary[subdomain] += len(outputLinks)
+                else:
+                    sd_dictionary[subdomain] = len(outputLinks)
+            print "Dictionary's content: "
+            print sd_dictionary
+            logging.info("The dictionary content: ", sd_dictionary)
 
         # If http status code is NOT OK
         else:
             invalidlinks += 1
-
+        # ANALYTICS 3 - Count invalid links from the frontier
         print "The number of INVALID links: " + str(invalidlinks)
         logging.info("The number of INVALID links: " + str(invalidlinks))
 
@@ -139,10 +149,17 @@ def extract_next_links(rawDataObj):
     except TypeError:
         print ("TypeError : ", TypeError.message)
         return outputLinks
+
     except Exception as e:
         print ("OtherError : ", e.message)
         return outputLinks
 
+# New (sub)Function to extract subdomain
+def extract_subdomain(url):
+    if "http://" in url or "https://" in url:
+        extract = tldextract.extract(url).subdomain
+        return extract.replace("www.", '')
+    return
 
 def is_valid(url):
     '''
