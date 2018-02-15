@@ -59,8 +59,6 @@ class CrawlerFrame(IApplication):
 def extract_next_links(rawDataObj):
     global PagesCounter
 
-    PagesCounter = PagesCounter + 1
-
     print "Totally crawled pages: ", PagesCounter
     logging.info("Totally crawled pages: " + str(PagesCounter))
 
@@ -103,6 +101,9 @@ def extract_next_links(rawDataObj):
             root = html.fromstring(rawDataObj.content)
             # Extract the content of a tree (specifically, href)
             urls = root.xpath("/html/body//a/@href")
+
+            # Once we got the content successfully, it means we crawled one page successfully.
+            PagesCounter = PagesCounter + 1
 
             print "The list of RAW links (extracted directly from content):"
             print urls
