@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 LOG_HEADER = "[CRAWLER]"
 
 PagesCounter = 0
+outlinksCounter = 0
+sd_dictionary = []
+pagemostoutlinks = ""
 
 @Producer(QiushibaiAvinashkumarKyungwoohyunJonathanharijantoLink)
 @GetterSetter(OneQiushibaiAvinashkumarKyungwoohyunJonathanharijantoUnProcessedLink)
@@ -154,6 +157,7 @@ def extract_next_links(rawDataObj):
         print ("OtherError : ", e.message)
         return outputLinks
 
+
 # New (sub)Function to extract subdomain
 def extract_subdomain(url):
     if "http://" in url or "https://" in url:
@@ -161,7 +165,13 @@ def extract_subdomain(url):
         return extract.replace("www.", '')
     return
 
+
 def is_valid(url):
+
+    message = ""
+
+    result = False
+
     '''
     Function returns True or False based on whether the url has to be
     downloaded or not.
@@ -186,20 +196,28 @@ def is_valid(url):
         # Assume the value object has proper __unicode__() method
         original = unicode(url)
 
+    message += "Validating url: [" + original + "]"
+
     parsed = urlparse(url)
 
-    print "Validating url: [", original, "]"
-    print "Parsed url: ", parsed
-    try:
-        logging.info("Validating url: [" + original + "]")
-        logging.info("Parsed url: " + parsed)
-    except TypeError:
-        print ("TypeError for logging: ", TypeError.message)
+    # print "Validating url: [", original, "]"
+    # print "Parsed url: ", str(parsed)
+    # try:
+        # logging.info("Validating url: [" + original + "]")
+        # logging.info("Parsed url: " + parsed)
+    # except TypeError:
+    #    print ("TypeError for logging: ", TypeError.message)
 
     if parsed.scheme not in set(["http", "https"]):
-        print "[x][http, https]"
-        logging.info("[x][http, https]")
-        return False
+        # print "[x][http, https]"
+        # logging.info("[x][http, https]")
+        message += " [x] reason: [http https]"
+        result = False
+
+        print message
+        logging.info(message)
+
+        return result
 
     try:
         result = ".ics.uci.edu" in parsed.hostname \
@@ -220,68 +238,84 @@ def is_valid(url):
             and not re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", parsed.path.lower())\
             and not re.match("^.*(/misc|/sites|/all|/themes|/modules|/profiles|/css|/field|/node|/theme){3}.*$", parsed.path.lower())
 
+        # For logging the reasons.
         violation0 = ".ics.uci.edu" in parsed.hostname
-        if violation0 is False:
-            print "[x][.ics.uci.edu]"
-            logging.info("[x][.ics.uci.edu]")
 
         # Based on path
-        violation1 = not re.match(".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
+        violation1p = not re.match(".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
             + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
             + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z"
             + "|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv"
             + "|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
-        if violation1 is False:
-            print "[x][path][file suffixes]"
-            logging.info("[x][path][file suffixes]")
 
         # Based on original
-        violation1 = not re.match(".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
+        violation1o = not re.match(".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
                                   + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
                                   + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z"
                                   + "|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv"
                                   + "|rm|smil|wmv|swf|wma|zip|rar|gz)$", original.lower())
-        if violation1 is False:
-            print "[x][original][file suffixes]"
-            logging.info("[x][original][file suffixes]")
 
         # Based on path
-        violation2 = not re.match("^.*calendar.*$", parsed.path.lower())
-        if violation2 is False:
-            print "[x][path][Calendars]"
-            logging.info("[x][path][Calendars]")
+        violation2p = not re.match("^.*calendar.*$", parsed.path.lower())
 
         # Based on original
-        violation2 = not re.match("^.*calendar.*$", original.lower())
-        if violation2 is False:
-            print "[x][original][Calendars]"
-            logging.info("[x][original][Calendars]")
+        violation2o = not re.match("^.*calendar.*$", original.lower())
 
         # Based on path
-        violation3 = not re.match("^.*/[^/]{200,}$", parsed.path)
-        if violation3 is False:
-            print "[x][path][Long Invalid URLs]"
-            logging.info("[x][path][Long Invalid URLs]")
+        violation3p = not re.match("^.*/[^/]{200,}$", parsed.path)
 
         # Based on original
-        violation3 = not re.match("^.*/[^/]{300,}$", original)
-        if violation3 is False:
-            print "[x][original][Long Invalid URLs]"
-            logging.info("[x][original][Long Invalid URLs]")
+        violation3o = not re.match("^.*/[^/]{300,}$", original)
 
         violation4 = not re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", parsed.path.lower())
-        if violation4 is False:
-            print "[x][Repeating Directories]"
-            logging.info("[x][Repeating Directories]")
 
         violation5 = re.match("^.*(/misc|/sites|/all|/themes|/modules|/profiles|/css|/field|/node|/theme){3}.*$", parsed.path.lower())
+
+        if violation0 is False:
+            # print "[x][.ics.uci.edu]"
+            # logging.info("[x][.ics.uci.edu]")
+            message += "[x] reason: [.ics.uci.edu]"
+        if violation1p is False:
+            # print "[x][path][file suffixes]"
+            # logging.info("[x][path][file suffixes]")
+            message += "[x] reason: [path][file suffixes]"
+        if violation1o is False:
+            # print "[x][original][file suffixes]"
+            # logging.info("[x][original][file suffixes]")
+            message += "[x] reason: [original][file suffixes]"
+        if violation2p is False:
+            # print "[x][path][Calendars]"
+            # logging.info("[x][path][Calendars]")
+            message += "[x] reason: [path][Calendars]"
+        if violation2o is False:
+            # print "[x][original][Calendars]"
+            # logging.info("[x][original][Calendars]")
+            message += "[x] reason: [original][Calendars]"
+        if violation3p is False:
+            # print "[x][path][Long Invalid URLs]"
+            # logging.info("[x][path][Long Invalid URLs]")
+            message += "[x] reason: [path][Long Invalid URLs]"
+        if violation3o is False:
+            # print "[x][original][Long Invalid URLs]"
+            # logging.info("[x][original][Long Invalid URLs]")
+            message += "[x] reason: [original][Long Invalid URLs]"
+        if violation4 is False:
+            # print "[x][Repeating Directories]"
+            # logging.info("[x][Repeating Directories]")
+            message += "[x] reason: [Repeating Directories]"
         if violation5 is False:
-            print "[x][Extra Directories]"
-            logging.info("[x][Extra Directories]")
+            # print "[x][Extra Directories]"
+            # logging.info("[x][Extra Directories]")
+            message += "[x] reason: [Extra Directories]"
 
         if result is True:
-            print "[o] valid! "
-            logging.info("[o] valid! ")
+            # print "[o] valid! "
+            # logging.info("[o] valid! ")
+            message += "[o] valid!"
+
+        print message
+        logging.info(message)
+
         return result
 
     except TypeError:
