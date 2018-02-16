@@ -22,7 +22,7 @@ LOG_HEADER = "[CRAWLER]"
 
 PagesCounter = 0
 outlinksCounter = 0
-sd_dictionary = []
+sd_dictionary = {}
 pagemostoutlinks = ""
 
 @Producer(QiushibaiAvinashkumarKyungwoohyunJonathanharijantoLink)
