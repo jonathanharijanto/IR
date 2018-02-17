@@ -24,6 +24,7 @@ PagesCounter = 0
 outlinksCounter = 0
 sd_dictionary = {}
 pagemostoutlinks = ""
+invalidlinks = 0
 
 @Producer(QiushibaiAvinashkumarKyungwoohyunJonathanharijantoLink)
 @GetterSetter(OneQiushibaiAvinashkumarKyungwoohyunJonathanharijantoUnProcessedLink)
@@ -69,7 +70,7 @@ def extract_next_links(rawDataObj):
     logging.info("Totally crawled pages: " + str(PagesCounter))
 
     outputLinks = []
-    invalidlinks = 0
+    global invalidlinks
 
     #print "rawDataObj.url = ", rawDataObj.url
     #print "rawDataObj.content", rawDataObj.content
