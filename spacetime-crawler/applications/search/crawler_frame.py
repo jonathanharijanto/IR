@@ -139,7 +139,7 @@ def extract_next_links(rawDataObj):
                     sd_dictionary[subdomain] = len(outputLinks)
             print "Dictionary's content: "
             print sd_dictionary
-            logging.info("The dictionary content: ", sd_dictionary)
+            logging.info("The dictionary content: " + str(sd_dictionary))
 
         # If http status code is NOT OK
         else:
