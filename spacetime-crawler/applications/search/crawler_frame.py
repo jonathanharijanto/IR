@@ -23,7 +23,9 @@ LOG_HEADER = "[CRAWLER]"
 PagesCounter = 0
 outlinksCounter = 0
 sd_dictionary = {}
+sd_dictionaryVisited = {}
 pagemostoutlinks = ""
+invalidlinks = 0
 
 @Producer(QiushibaiAvinashkumarKyungwoohyunJonathanharijantoLink)
 @GetterSetter(OneQiushibaiAvinashkumarKyungwoohyunJonathanharijantoUnProcessedLink)
@@ -46,7 +48,10 @@ class CrawlerFrame(IApplication):
         unprocessed_links = self.frame.get(OneQiushibaiAvinashkumarKyungwoohyunJonathanharijantoUnProcessedLink)
         if unprocessed_links:
             link = unprocessed_links[0]
+            print ""
             print "Got a link to download:", link.full_url
+            logging.info("")
+            logging.info("")
             logging.info("Got a link to download:" + link.full_url)
             downloaded = link.download()
             links = extract_next_links(downloaded)
@@ -64,12 +69,13 @@ def extract_next_links(rawDataObj):
     global outlinksCounter
     global sd_dictionary
     global pagemostoutlinks
+    global sd_dictionaryVisited
 
     print "Totally crawled pages: ", PagesCounter
     logging.info("Totally crawled pages: " + str(PagesCounter))
 
     outputLinks = []
-    invalidlinks = 0
+    global invalidlinks
 
     #print "rawDataObj.url = ", rawDataObj.url
     #print "rawDataObj.content", rawDataObj.content
@@ -98,22 +104,25 @@ def extract_next_links(rawDataObj):
 
             # Get the subdomain of the url being visited
             subdomain = extract_subdomain(rawDataObj.url)
+            print "Subdomain - ", subdomain
 
             # Parse the document from the given input
             root = html.fromstring(rawDataObj.content)
             # Extract the content of a tree (specifically, href)
             urls = root.xpath("/html/body//a/@href")
 
-            print "The list of RAW links (extracted directly from content):"
-            print urls
+            # print "The list of RAW links (extracted directly from content):"
+            # print urls
 
             for url in urls:
                 outputLinks.append(urljoin(rawDataObj.url, url))
 
-            print "The list of VALID (absolute form) links:"
-            logging.info("The list of VALID (absolute form) links:")
-            print '\n'.join(outputLinks)
-            logging.info('\n'.join(outputLinks))
+            # print "The list of VALID (absolute form) links:"
+            # logging.info("The list of VALID (absolute form) links:")
+            # print ','.join(outputLinks)
+            # logging.info(','.join(outputLinks))
+
+
             #print "The list of sub domains:"
             #logging.info("The list of sub domains:")
             #print '\n'.join(subdomainlist)
@@ -136,9 +145,17 @@ def extract_next_links(rawDataObj):
                     sd_dictionary[subdomain] += len(outputLinks)
                 else:
                     sd_dictionary[subdomain] = len(outputLinks)
-            print "Dictionary's content: "
+
+                if subdomain in sd_dictionaryVisited:
+                    sd_dictionaryVisited[subdomain] += 1
+                else:
+                    sd_dictionaryVisited[subdomain] = 1
+            print "Dictionary's content tracking extracted URLs for subdomains: "
             print sd_dictionary
-            logging.info("The dictionary content: ", sd_dictionary)
+            print "Dictionary's content tracking visited URLs for subdomains: "
+            print sd_dictionaryVisited
+            logging.info("The dictionary content tracking extracted URLs for subdomains: " + str(sd_dictionary))
+            logging.info("The dictionary content tracking visited URLs for subdomains: " + str(sd_dictionaryVisited))
 
         # If http status code is NOT OK
         else:
