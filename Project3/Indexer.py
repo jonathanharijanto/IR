@@ -2,20 +2,21 @@ from bs4 import BeautifulSoup
 import os
 import re
 
-path = "../WEBPAGES_CLEAN/"
+path = "webpages_clean/"
 
 os.getcwd()
 
 def main():
     inverted_index = {}
     word_count = {}
-    w = open("monitor.txt", w)
+    w = open("monitoroutput.txt", 'w')
     for parentfilename in os.listdir(path):
-        print "parentdir: " + parentfilename, path+parentfilename
-        w.write("PARENT DIRECTORY: " + parentfilename, path+parentfilename)
+        print "parentdir: " + path + parentfilename
+        w.write("PARENT DIRECTORY: " + path + parentfilename + "\n")
         for filename in os.listdir(path+parentfilename):
-            print "\tSUB DIRECTORY: " + filename, path + parentfilename + "/" + filename
-            docID = parentfilename + filename
+            print "\tSUB DIRECTORY: " + path + parentfilename + "/" + filename
+            w.write("\tSUB DIRECTORY: " + path + parentfilename + "/" + filename + "\n")
+            docID = parentfilename + "_" + filename
             file = open((path + parentfilename + "/" + filename), "r")
             cleantxtfile = BeautifulSoup(file, "lxml").text
             line = re.sub(r'\W', ' ', cleantxtfile).lower().split()
@@ -28,6 +29,7 @@ def main():
                     inverted_index.setdefault(word, []).append(docID)
     w.close()
     outputBeautify(inverted_index)
+    print "DONE!"
 
 def outputBeautify(a_dictionary):
     w = open('outputfile.txt', 'w')
