@@ -1,32 +1,49 @@
 from bs4 import BeautifulSoup
 import os
 import re
+from collections import Counter, defaultdict
 
 path = "webpages_clean/"
 
 os.getcwd()
 
+def isValid(word):
+    if word.isdigit():
+        return False
+    else:
+        return True
+
 def main():
-    inverted_index = {}
+    inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
     word_count = {}
     w = open("monitoroutput.txt", 'w')
     for parentfilename in os.listdir(path):
-        print "parentdir: " + path + parentfilename
-        w.write("PARENT DIRECTORY: " + path + parentfilename + "\n")
-        for filename in os.listdir(path+parentfilename):
-            print "\tSUB DIRECTORY: " + path + parentfilename + "/" + filename
-            w.write("\tSUB DIRECTORY: " + path + parentfilename + "/" + filename + "\n")
-            docID = parentfilename + "_" + filename
-            file = open((path + parentfilename + "/" + filename), "r")
-            cleantxtfile = BeautifulSoup(file, "lxml").text
-            line = re.sub(r'\W', ' ', cleantxtfile).lower().split()
-            for word in line:
-                word = word.encode('ascii', 'ignore')
-                if word in inverted_index:
-                    if docID not in inverted_index[word]:
-                        inverted_index.setdefault(word, []).append(docID)
-                else:
-                    inverted_index.setdefault(word, []).append(docID)
+        if os.path.isdir(path + parentfilename):
+            print "parentdir: " + path + parentfilename
+            w.write("PARENT DIRECTORY: " + path + parentfilename + "\n")
+            for filename in os.listdir(path+parentfilename):
+                if os.path.isfile(path + parentfilename + "/" + filename):
+                    print "\tSUB DIRECTORY: " + path + parentfilename + "/" + filename
+                    w.write("\tSUB DIRECTORY: " + path + parentfilename + "/" + filename + "\n")
+                    docID = parentfilename + "_" + filename
+                    file = open((path + parentfilename + "/" + filename), "r")
+                    cleantxtfile = BeautifulSoup(file, "lxml").text
+                    line = re.sub(r'\W', ' ', cleantxtfile).lower().split()
+                    wordPos = 0
+                    for word in line:
+                        wordPos += 1
+                        if isValid(word):
+                            word = word.encode('ascii', 'ignore')
+                            if word in inverted_index:
+                                if docID not in inverted_index[word]:
+                                    inverted_index[word][docID] = list()
+                                    inverted_index[word][docID].append(wordPos)
+                                else:
+                                    inverted_index[word][docID].append(wordPos)
+                            else:
+                                inverted_index[word][docID] = list()
+                                inverted_index[word][docID].append(wordPos)
+
     w.close()
     outputBeautify(inverted_index)
     print "DONE!"
@@ -34,8 +51,11 @@ def main():
 def outputBeautify(a_dictionary):
     w = open('outputfile.txt', 'w')
     for i in a_dictionary:
-        #print str(i) + " --> " + str(a_dictionary[i]) + "\n"
-        w.write(str(i) + " --> " + str(a_dictionary[i]) + "\n")
+        w.write(str(i) + " --> " )
+        for j in a_dictionary[i]:
+            w.write(str(j) + " ["+ str(a_dictionary[i][j])+"], ")
+            #print str(i) + " --> " + str(a_dictionary[i]) + "\n"
+        w.write("\n")
     w.close()
 
 if __name__ == '__main__':
