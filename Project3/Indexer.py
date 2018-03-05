@@ -5,30 +5,35 @@ from collections import Counter, defaultdict
 
 path = "webpages_clean/"
 
-os.getcwd()
-
-global totalDocuments
-
+# Unused function
 def isValid(word):
     if word.isdigit():
         return False
     else:
         return True
 
-def main():
-    inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
-    word_count = {}
+def weighting():
+    print "haha"
+    # term frequency = ?
+    # tf_score = log( 1 + tf) -- base 10
+    # document frequency = ?
+    # df_score = log( N / df ) -- base 10
+    # tf-idf weight = tf_score * df_score
+
+def doc_score():
+    print "hehe"
+    # score(query,document) = sum_of_all(tf * idf)
+
+def create_index(a_dictionary, totalDocuments):
     w = open("monitoroutput.txt", 'w')
-    global totalDocuments
-    totalDocuments = 0
     for parentfilename in os.listdir(path):
         if os.path.isdir(path + parentfilename):
-            print "parentdir: " + path + parentfilename
+            #print "PARENT DIRECTORY: " + path + parentfilename
             w.write("PARENT DIRECTORY: " + path + parentfilename + "\n")
-            for filename in os.listdir(path+parentfilename):
+            for filename in os.listdir(path + parentfilename):
                 if os.path.isfile(path + parentfilename + "/" + filename):
                     totalDocuments += 1
-                    print "\tSUB DIRECTORY: " + path + parentfilename + "/" + filename
+                    #print "\tSUB DIRECTORY: " + path + parentfilename + "/" + filename
                     w.write("\tSUB DIRECTORY: " + path + parentfilename + "/" + filename + "\n")
                     docID = parentfilename + "_" + filename
                     file = open((path + parentfilename + "/" + filename), "r")
@@ -37,32 +42,51 @@ def main():
                     wordPos = 0
                     for word in line:
                         wordPos += 1
-                        if isValid(word):
+                        # Remove any word that contains number or special character
+                        if word.isalpha() == True:
                             word = word.encode('ascii', 'ignore')
-                            if word in inverted_index:
-                                if docID not in inverted_index[word]:
-                                    inverted_index[word][docID] = list()
-                                    inverted_index[word][docID].append(wordPos)
+                            if word in a_dictionary:
+                                if docID not in a_dictionary[word]:
+                                    a_dictionary[word][docID] = list()
+                                    a_dictionary[word][docID].append(wordPos)
                                 else:
-                                    inverted_index[word][docID].append(wordPos)
+                                    a_dictionary[word][docID].append(wordPos)
                             else:
-                                inverted_index[word][docID] = list()
-                                inverted_index[word][docID].append(wordPos)
-
+                                a_dictionary[word][docID] = list()
+                                a_dictionary[word][docID].append(wordPos)
     w.close()
-    outputBeautify(inverted_index)
+    outputBeautify(a_dictionary, totalDocuments)
     print "DONE!"
 
-def outputBeautify(a_dictionary):
+def main():
+    totalDocuments = 0
+    inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
+    create_index(inverted_index, totalDocuments)
+    query = raw_input("Search here: ")
+    # First condition: single query -- go to dictionary and retrieve the docs
+    if len(query.split()) == 1:
+        if query in inverted_index:
+            for doc in inverted_index[query]:
+                # Split the input XX_XXX into XX(parent folder) & XXX(folder)
+                doc = re.sub("_", " ", doc).split()
+                print "URL: " + path + doc[0] + "/" + doc[1]
+    # Second condition: not a single query -- do scoring and retrieve the docs
+    else:
+        print "happy happy"
+
+
+def outputBeautify(a_dictionary, totalDocuments):
     w = open('outputfile.txt', 'w')
-    w.write("Total unqiue words = " + str(len(a_dictionary.keys())) + "\n")
+    w.write("Total unique words = " + str(len(a_dictionary.keys())) + "\n")
     w.write("Total documents = " + str(totalDocuments) + "\n")
     for i in a_dictionary:
-        w.write(str(i) + " --> " )
+        w.write(str(i) + " --> ")
         for j in a_dictionary[i]:
-            w.write(str(j) + " ["+ str(a_dictionary[i][j])+"], ")
+            w.write(str(j) + " [" + str(a_dictionary[i][j]) + "], ")
             #print str(i) + " --> " + str(a_dictionary[i]) + "\n"
+        #w.write("\t" + str(len(a_dictionary[i])))
         w.write("\n")
+    w.write("Total size of index on disk: " + str(os.path.getsize('outputfile.txt')) + " bytes")
     w.close()
 
 if __name__ == '__main__':
