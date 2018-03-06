@@ -55,6 +55,8 @@ def create_index(a_dictionary, totalDocuments):
                                 a_dictionary[word][docID] = list()
                                 a_dictionary[word][docID].append(wordPos)
     w.close()
+    # Added by Qiushi, to generate a json file of our index
+    outputJSON(a_dictionary)
     outputBeautify(a_dictionary, totalDocuments)
     print "DONE!"
 
@@ -87,6 +89,28 @@ def outputBeautify(a_dictionary, totalDocuments):
         #w.write("\t" + str(len(a_dictionary[i])))
         w.write("\n")
     w.write("Total size of index on disk: " + str(os.path.getsize('outputfile.txt')) + " bytes")
+    w.close()
+
+# Added by Qiushi, for generate a json file of our index
+def outputJSON(a_dictionary):
+    w = open('index.json', 'w')
+    w.write("[\n")
+    c1 = 0
+    for i in a_dictionary:
+        if c1 > 0:
+            w.write(",")
+        w.write("{")
+        w.write("\"" + str(i) + "\": ")
+        w.write("[")
+        c2 = 0
+        for j in a_dictionary[i]:
+            if c2 > 0:
+                w.write(", ")
+            w.write("{" + str(j) + ": " + str(a_dictionary[i][j]) + "}")
+            c2 += 1
+        w.write("]}\n")
+        c1 += 1
+    w.write("]")
     w.close()
 
 if __name__ == '__main__':
