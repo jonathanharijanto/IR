@@ -54,6 +54,11 @@ def main():
         json_data = json.load(open('output.json', 'r'))
         json_url_data = json.load(open(path + 'bookkeeping.json'))
         input = raw_input("Search here: ")
+        query_index(input, json_data, json_url_data)
+
+    '''
+    # I don't we need these lines of code anymore. The function query_index() does everything.
+        
         query = input.split()
         # One-word query
         if len(query) == 1:
@@ -86,6 +91,26 @@ def main():
                 print "DocID: " + str(docID) + ", URL: " + url
     # Added by Qiushi, if you want to load the JSON file or index, call loadJSON()
     # loadJSON()
+    '''
+
+# Scalable query index, could handle n-numbers of query
+# Need to improve: the order of the query
+def query_index(input, index_dict, url_dict):
+    query = re.sub(r'\W', ' ', input).lower().split()
+    listOfList = []
+    for q in query:
+        temp = []
+        if q in index_dict:
+            for docID in index_dict[q]:
+                temp.append(docID.encode('ascii', 'ignore'))
+        listOfList.append(temp)
+    intersection = list(set(listOfList[0]).intersection(*listOfList))
+    print intersection
+    for docID in intersection:
+        docID = docID.replace('_', '/')
+        if docID in url_dict:
+            url = url_dict[docID]
+            print "DocID: " + str(docID) + ", URL: " + url
 
 def outputNormal(a_dictionary):
     with open('output.json', 'w') as fp:
