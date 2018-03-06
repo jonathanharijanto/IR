@@ -1,28 +1,10 @@
 from bs4 import BeautifulSoup
 import os
 import re
-from collections import Counter, defaultdict
+from collections import defaultdict
+import json
 
 path = "webpages_clean/"
-
-# Unused function
-def isValid(word):
-    if word.isdigit():
-        return False
-    else:
-        return True
-
-def weighting():
-    print "haha"
-    # term frequency = ?
-    # tf_score = log( 1 + tf) -- base 10
-    # document frequency = ?
-    # df_score = log( N / df ) -- base 10
-    # tf-idf weight = tf_score * df_score
-
-def doc_score():
-    print "hehe"
-    # score(query,document) = sum_of_all(tf * idf)
 
 def create_index(a_dictionary, totalDocuments):
     w = open("monitoroutput.txt", 'w')
@@ -58,39 +40,67 @@ def create_index(a_dictionary, totalDocuments):
     # Added by Qiushi, to generate a json file of our index
     outputJSON(a_dictionary)
     outputBeautify(a_dictionary, totalDocuments)
-    print "DONE!"
+    outputNormal(a_dictionary)
+    print "Indexing done!"
 
 def main():
     totalDocuments = 0
     inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
-    create_index(inverted_index, totalDocuments)
-    query = raw_input("Search here: ")
-    # First condition: single query -- go to dictionary and retrieve the docs
-    if len(query.split()) == 1:
-        if query in inverted_index:
-            for doc in inverted_index[query]:
-                # Split the input XX_XXX into XX(parent folder) & XXX(folder)
-                doc = re.sub("_", " ", doc).split()
-                print "URL: " + path + doc[0] + "/" + doc[1]
-    # Second condition: not a single query -- do scoring and retrieve the docs
+    if not os.path.isfile("output.json"):
+        print "Building an index, please wait..."
+        create_index(inverted_index, totalDocuments)
     else:
-        print "happy happy"
+        print "Opening json file, please wait..."
+        json_data = json.load(open('output.json', 'r'))
+        json_url_data = json.load(open(path + 'bookkeeping.json'))
+        input = raw_input("Search here: ")
+        query = input.split()
+        # One-word query
+        if len(query) == 1:
+            docID = None
+            max_freq = None
+            for id in json_data[query[0]]:
+                print id, len(json_data[query[0]][id])
+                if len(json_data[query[0]][id]) > max_freq:
+                    max_freq = len(json_data[query[0]][id])
+                    docID = id
+            print "The Highest Freq: " + str(docID) + " " + str(max_freq)
+            docID = docID.replace('_', '/')
+            if docID in json_url_data:
+                url = json_url_data[docID]
+                print "DocID: " + str(docID) + ", URL: " + url
+        # More-than-one-word query
+        # Note to self: still need a better approach
+        elif len(query) == 2:
+            list_1 = []
+            list_2 = []
+            for id in json_data[query[0]]:
+                list_1.append(id.encode('ascii', 'ignore'))
+            for id in json_data[query[1]]:
+                list_2.append(id.encode('ascii', 'ignore'))
+            docID = list(set(list_1).intersection(set(list_2)))
+            print docID
+            docID = docID[0].replace('_', '/')
+            if docID in json_url_data:
+                url = json_url_data[docID]
+                print "DocID: " + str(docID) + ", URL: " + url
     # Added by Qiushi, if you want to load the JSON file or index, call loadJSON()
     # loadJSON()
 
+def outputNormal(a_dictionary):
+    with open('output.json', 'w') as fp:
+        json.dump(a_dictionary, fp)
 
 def outputBeautify(a_dictionary, totalDocuments):
-    w = open('outputfile.txt', 'w')
+    w = open('outputbeauty.txt', 'w')
     w.write("Total unique words = " + str(len(a_dictionary.keys())) + "\n")
     w.write("Total documents = " + str(totalDocuments) + "\n")
     for i in a_dictionary:
         w.write(str(i) + " --> ")
         for j in a_dictionary[i]:
             w.write(str(j) + " [" + str(a_dictionary[i][j]) + "], ")
-            #print str(i) + " --> " + str(a_dictionary[i]) + "\n"
-        #w.write("\t" + str(len(a_dictionary[i])))
         w.write("\n")
-    w.write("Total size of index on disk: " + str(os.path.getsize('outputfile.txt')) + " bytes")
+    w.write("Total size of index on disk: " + str(os.path.getsize('outputbeauty.txt')) + " bytes")
     w.close()
 
 # Added by Qiushi, for generate a json file of our index
