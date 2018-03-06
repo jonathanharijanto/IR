@@ -1,28 +1,10 @@
 from bs4 import BeautifulSoup
 import os
 import re
-from collections import Counter, defaultdict
+from collections import defaultdict
+import json
 
 path = "webpages_clean/"
-
-# Unused function
-def isValid(word):
-    if word.isdigit():
-        return False
-    else:
-        return True
-
-def weighting():
-    print "haha"
-    # term frequency = ?
-    # tf_score = log( 1 + tf) -- base 10
-    # document frequency = ?
-    # df_score = log( N / df ) -- base 10
-    # tf-idf weight = tf_score * df_score
-
-def doc_score():
-    print "hehe"
-    # score(query,document) = sum_of_all(tf * idf)
 
 def create_index(a_dictionary, totalDocuments):
     w = open("monitoroutput.txt", 'w')
@@ -56,37 +38,58 @@ def create_index(a_dictionary, totalDocuments):
                                 a_dictionary[word][docID].append(wordPos)
     w.close()
     outputBeautify(a_dictionary, totalDocuments)
+    outputNormal(a_dictionary)
     print "DONE!"
 
 def main():
     totalDocuments = 0
     inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
+    #if not os.path.isfile("output.txt"):
     create_index(inverted_index, totalDocuments)
-    query = raw_input("Search here: ")
+    input = raw_input("Search here: ")
+    query = input.split()
     # First condition: single query -- go to dictionary and retrieve the docs
-    if len(query.split()) == 1:
-        if query in inverted_index:
-            for doc in inverted_index[query]:
-                # Split the input XX_XXX into XX(parent folder) & XXX(folder)
-                doc = re.sub("_", " ", doc).split()
-                print "URL: " + path + doc[0] + "/" + doc[1]
+    if len(query) == 1:
+        docID = None
+        max_freq = None
+        for id in inverted_index[query]:
+            print id, len(inverted_index[query][id])
+            if len(inverted_index[query][id]) > max_freq:
+                max_freq = len(inverted_index[query][id])
+                docID = id
+        print docID, max_freq
+        docID = docID.replace('_', '/')
+        print docID
+        json_data = json.load(open(path + 'bookkeeping.json'))
+        if docID in json_data:
+            url = json_data[docID]
+            print docID, url
     # Second condition: not a single query -- do scoring and retrieve the docs
-    else:
-        print "happy happy"
+    elif len(query) == 2:
+        list_1 = []
+        list_2 = []
+        for id in inverted_index[query[0]]:
+            list_1.append(id)
+        for id in inverted_index[query[1]]:
+            list_2.append(id)
+        docID = set(list_1).intersection(set(list_2))
+        print docID
 
+def outputNormal(a_dictionary):
+    f = open("output.txt", "w")
+    f.write(str(a_dictionary))
+    f.close()
 
 def outputBeautify(a_dictionary, totalDocuments):
-    w = open('outputfile.txt', 'w')
+    w = open('outputbeauty.txt', 'w')
     w.write("Total unique words = " + str(len(a_dictionary.keys())) + "\n")
     w.write("Total documents = " + str(totalDocuments) + "\n")
     for i in a_dictionary:
         w.write(str(i) + " --> ")
         for j in a_dictionary[i]:
             w.write(str(j) + " [" + str(a_dictionary[i][j]) + "], ")
-            #print str(i) + " --> " + str(a_dictionary[i]) + "\n"
-        #w.write("\t" + str(len(a_dictionary[i])))
         w.write("\n")
-    w.write("Total size of index on disk: " + str(os.path.getsize('outputfile.txt')) + " bytes")
+    w.write("Total size of index on disk: " + str(os.path.getsize('outputbeauty.txt')) + " bytes")
     w.close()
 
 if __name__ == '__main__':
