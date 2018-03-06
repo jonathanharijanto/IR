@@ -75,6 +75,8 @@ def main():
     # Second condition: not a single query -- do scoring and retrieve the docs
     else:
         print "happy happy"
+    # Added by Qiushi, if you want to load the JSON file or index, call loadJSON()
+    # loadJSON()
 
 
 def outputBeautify(a_dictionary, totalDocuments):
@@ -94,24 +96,32 @@ def outputBeautify(a_dictionary, totalDocuments):
 # Added by Qiushi, for generate a json file of our index
 def outputJSON(a_dictionary):
     w = open('index.json', 'w')
-    w.write("[\n")
+    w.write("{\n")
     c1 = 0
     for i in a_dictionary:
         if c1 > 0:
             w.write(",")
-        w.write("{")
         w.write("\"" + str(i) + "\": ")
-        w.write("[")
+        w.write("{")
         c2 = 0
         for j in a_dictionary[i]:
             if c2 > 0:
                 w.write(", ")
-            w.write("{" + str(j) + ": " + str(a_dictionary[i][j]) + "}")
+            w.write("\"" + str(j) + "\": " + str(a_dictionary[i][j]))
             c2 += 1
-        w.write("]}\n")
+        w.write("}\n")
         c1 += 1
-    w.write("]")
+    w.write("}")
     w.close()
+
+# Added by Qiushi, for load a json file into dict
+def loadJSON():
+    import json
+    from pprint import pprint
+
+    inverted_index = json.load(open('index.json'))
+
+    pprint(inverted_index["fawn"])
 
 if __name__ == '__main__':
     main()
