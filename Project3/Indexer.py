@@ -41,46 +41,53 @@ def create_index(a_dictionary, totalDocuments):
     outputJSON(a_dictionary)
     outputBeautify(a_dictionary, totalDocuments)
     outputNormal(a_dictionary)
-    print "DONE!"
+    print "Indexing done!"
 
 def main():
     totalDocuments = 0
     inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
-    #if not os.path.isfile("output.txt"):
-    create_index(inverted_index, totalDocuments)
-    input = raw_input("Search here: ")
-    query = input.split()
-    # First condition: single query -- go to dictionary and retrieve the docs
-    if len(query) == 1:
-        docID = None
-        max_freq = None
-        for id in inverted_index[query]:
-            print id, len(inverted_index[query][id])
-            if len(inverted_index[query][id]) > max_freq:
-                max_freq = len(inverted_index[query][id])
-                docID = id
-        print docID, max_freq
-        docID = docID.replace('_', '/')
-        print docID
-        json_data = json.load(open(path + 'bookkeeping.json'))
-        if docID in json_data:
-            url = json_data[docID]
-            print docID, url
-    # Second condition: not a single query -- do scoring and retrieve the docs
-    elif len(query) == 2:
-        list_1 = []
-        list_2 = []
-        for id in inverted_index[query[0]]:
-            list_1.append(id)
-        for id in inverted_index[query[1]]:
-            list_2.append(id)
-        docID = set(list_1).intersection(set(list_2))
-        print docID
-
+    if not os.path.isfile("output.json"):
+        print "Building an index, please wait..."
+        create_index(inverted_index, totalDocuments)
+    else:
+        print "Opening json file, please wait..."
+        json_data = json.load(open('output.json', 'r'))
+        json_url_data = json.load(open(path + 'bookkeeping.json'))
+        input = raw_input("Search here: ")
+        query = input.split()
+        # One-word query
+        if len(query) == 1:
+            docID = None
+            max_freq = None
+            for id in json_data[query[0]]:
+                print id, len(json_data[query[0]][id])
+                if len(json_data[query[0]][id]) > max_freq:
+                    max_freq = len(json_data[query[0]][id])
+                    docID = id
+            print "The Highest Freq: " + str(docID) + " " + str(max_freq)
+            docID = docID.replace('_', '/')
+            if docID in json_url_data:
+                url = json_url_data[docID]
+                print "DocID: " + str(docID) + ", URL: " + url
+        # More-than-one-word query
+        # Note to self: still need a better approach
+        elif len(query) == 2:
+            list_1 = []
+            list_2 = []
+            for id in json_data[query[0]]:
+                list_1.append(id.encode('ascii', 'ignore'))
+            for id in json_data[query[1]]:
+                list_2.append(id.encode('ascii', 'ignore'))
+            docID = list(set(list_1).intersection(set(list_2)))
+            print docID
+            docID = docID[0].replace('_', '/')
+            if docID in json_url_data:
+                url = json_url_data[docID]
+                print "DocID: " + str(docID) + ", URL: " + url
+            
 def outputNormal(a_dictionary):
-    f = open("output.txt", "w")
-    f.write(str(a_dictionary))
-    f.close()
+    with open('output.json', 'w') as fp:
+        json.dump(a_dictionary, fp)
 
 def outputBeautify(a_dictionary, totalDocuments):
     w = open('outputbeauty.txt', 'w')
