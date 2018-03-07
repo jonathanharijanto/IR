@@ -53,45 +53,9 @@ def main():
         print "Opening json file, please wait..."
         json_data = json.load(open('output.json', 'r'))
         json_url_data = json.load(open(path + 'bookkeeping.json'))
-        input = raw_input("Search here: ")
-        query_index(input, json_data, json_url_data)
-
-    '''
-    # I don't we need these lines of code anymore. The function query_index() does everything.
-        
-        query = input.split()
-        # One-word query
-        if len(query) == 1:
-            docID = None
-            max_freq = None
-            for id in json_data[query[0]]:
-                print id, len(json_data[query[0]][id])
-                if len(json_data[query[0]][id]) > max_freq:
-                    max_freq = len(json_data[query[0]][id])
-                    docID = id
-            print "The Highest Freq: " + str(docID) + " " + str(max_freq)
-            docID = docID.replace('_', '/')
-            if docID in json_url_data:
-                url = json_url_data[docID]
-                print "DocID: " + str(docID) + ", URL: " + url
-        # More-than-one-word query
-        # Note to self: still need a better approach
-        elif len(query) == 2:
-            list_1 = []
-            list_2 = []
-            for id in json_data[query[0]]:
-                list_1.append(id.encode('ascii', 'ignore'))
-            for id in json_data[query[1]]:
-                list_2.append(id.encode('ascii', 'ignore'))
-            docID = list(set(list_1).intersection(set(list_2)))
-            print docID
-            docID = docID[0].replace('_', '/')
-            if docID in json_url_data:
-                url = json_url_data[docID]
-                print "DocID: " + str(docID) + ", URL: " + url
-    # Added by Qiushi, if you want to load the JSON file or index, call loadJSON()
-    # loadJSON()
-    '''
+        while True:
+            input = raw_input("Search here: ")
+            query_index(input, json_data, json_url_data)
 
 # Scalable query index, could handle n-numbers of query
 # Need to improve: the order of the query
