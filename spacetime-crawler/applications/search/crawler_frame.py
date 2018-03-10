@@ -27,6 +27,9 @@ sd_dictionaryVisited = {}
 pagemostoutlinks = ""
 invalidlinks = 0
 
+pageLinksFile = open("pageLinks.txt", "a+")
+pageLinksFile.write("{\n")
+
 @Producer(QiushibaiAvinashkumarKyungwoohyunJonathanharijantoLink)
 @GetterSetter(OneQiushibaiAvinashkumarKyungwoohyunJonathanharijantoUnProcessedLink)
 @ServerTriggers(add_server_copy, get_downloaded_content)
@@ -60,6 +63,8 @@ class CrawlerFrame(IApplication):
                     self.frame.add(QiushibaiAvinashkumarKyungwoohyunJonathanharijantoLink(l))
 
     def shutdown(self):
+        pageLinksFile.write("}")
+        pageLinksFile.close()
         print (
             "Time time spent this session: ",
             time() - self.starttime, " seconds.")
@@ -156,6 +161,13 @@ def extract_next_links(rawDataObj):
             print sd_dictionaryVisited
             logging.info("The dictionary content tracking extracted URLs for subdomains: " + str(sd_dictionary))
             logging.info("The dictionary content tracking visited URLs for subdomains: " + str(sd_dictionaryVisited))
+
+            pageLinksFile.write("\"" + rawDataObj.url + "\":")
+            pageLinksFile.write("[" + ','.join('"' + item + '"' for item in outputLinks) + "]\n")
+
+            docFile = open("docs/" + str(PagesCounter) + ".txt", "w")
+            docFile.write(rawDataObj.content)
+            docFile.close()
 
         # If http status code is NOT OK
         else:

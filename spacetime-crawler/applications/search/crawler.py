@@ -53,7 +53,7 @@ def SetupLoggers():
 if __name__== "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--address', type=str, default="amazon.ics.uci.edu", help='Address of the distributing server')
-    parser.add_argument('-p', '--port', type=int, default=9100, help='Port used by the distributing server')
+    parser.add_argument('-p', '--port', type=int, default=9300, help='Port used by the distributing server')
     args = parser.parse_args()
     SetupLoggers()
     sim = Simulation(args.address, args.port)
