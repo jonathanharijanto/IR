@@ -56,6 +56,8 @@ def main():
         json_url_data = json.load(open(path + 'bookkeeping.json'))
         while True:
             input = raw_input("Search here: ")
+            if input.lower() == 'quit' or input.lower() == 'exit':
+                return
             query_index(input, json_data, json_url_data)
 
 def showSnippet(docID, positions):
