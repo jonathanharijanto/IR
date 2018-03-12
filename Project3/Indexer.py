@@ -38,8 +38,7 @@ def create_index(a_dictionary, totalDocuments):
                                 a_dictionary[word][docID] = list()
                                 a_dictionary[word][docID].append(wordPos)
     w.close()
-    # Added by Qiushi, to generate a json file of our index
-    outputJSON(a_dictionary)
+    #outputJSON(a_dictionary)
     outputBeautify(a_dictionary, totalDocuments)
     outputNormal(a_dictionary)
     print "Indexing done!"
@@ -74,7 +73,6 @@ def showSnippet(docID, positions):
             print
     return
 
-# Scalable query index, could handle n-numbers of query
 # Need to improve: the order of the query
 def query_index(input, index_dict, url_dict):
     query = re.sub(r'\W', ' ', input).lower().split()
@@ -83,14 +81,23 @@ def query_index(input, index_dict, url_dict):
         if q in index_dict:
             resultList.append(index_dict[q])
 
+    print resultList
+    print len(resultList)
     intersectKeys = set(resultList[0].keys())
+    print intersectKeys
+
     for r in resultList[1:]:
         intersectKeys &= set(r.keys())
 
+    print intersectKeys
+
     intersectDic = OrderedDict()
     for key in intersectKeys:
+        intersectDic[key] = []
         for r in resultList:
-            intersectDic[key] = r[key]
+            intersectDic[key].extend(sorted(r[key]))
+        print sorted(intersectDic[key])
+    print intersectDic
 
     i = 0
     for key, positions in intersectDic.iteritems():
@@ -101,7 +108,7 @@ def query_index(input, index_dict, url_dict):
         if docID in url_dict:
             url = url_dict[docID]
             #print "DocID: " + str(docID) + ", URL: " + url
-            print("http://"+url)
+            print("http://" + url)
             showSnippet(docID, positions)
             i += 1
 
