@@ -6,22 +6,31 @@ from collections import OrderedDict
 import json
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import argparse
+import math
+import operator
 
 path = "webpages_clean/"
 
-# Added by Qiushi, Global data shared by Http servers
+def main():
+    totalDocuments = 37497
+    inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
+    if not os.path.isfile("output.json"):
+        print "Building an index, please wait..."
+        create_index(inverted_index, totalDocuments)
+    else:
+        print "Opening json file, please wait..."
+        json_data = json.load(open('output.json', 'r'))
+        json_url_data = json.load(open(path + 'bookkeeping.json'))
+        while True:
+            input = raw_input("Search here: ")
+            query_index_better(input, json_data, json_url_data, totalDocuments)
 
 def create_index(a_dictionary, totalDocuments):
-    w = open("monitoroutput.txt", 'w')
     for parentfilename in os.listdir(path):
         if os.path.isdir(path + parentfilename):
-            #print "PARENT DIRECTORY: " + path + parentfilename
-            w.write("PARENT DIRECTORY: " + path + parentfilename + "\n")
             for filename in os.listdir(path + parentfilename):
                 if os.path.isfile(path + parentfilename + "/" + filename):
                     totalDocuments += 1
-                    #print "\tSUB DIRECTORY: " + path + parentfilename + "/" + filename
-                    w.write("\tSUB DIRECTORY: " + path + parentfilename + "/" + filename + "\n")
                     docID = parentfilename + "_" + filename
                     file = open((path + parentfilename + "/" + filename), "r")
                     cleantxtfile = BeautifulSoup(file, "lxml").text
@@ -29,7 +38,6 @@ def create_index(a_dictionary, totalDocuments):
                     wordPos = 0
                     for word in line:
                         wordPos += 1
-                        # Remove any word that contains number or special character
                         if word.isalpha() == True:
                             word = word.encode('ascii', 'ignore')
                             if word in a_dictionary:
@@ -41,62 +49,91 @@ def create_index(a_dictionary, totalDocuments):
                             else:
                                 a_dictionary[word][docID] = list()
                                 a_dictionary[word][docID].append(wordPos)
-    w.close()
-    #outputJSON(a_dictionary)
     outputBeautify(a_dictionary, totalDocuments)
     outputNormal(a_dictionary)
     print "Indexing done!"
-
-
-def main():
-    totalDocuments = 0
-    inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
-    if not os.path.isfile("output.json"):
-        print "Building an index, please wait..."
-        create_index(inverted_index, totalDocuments)
-    else:
-        print "Opening json file, please wait..."
-        json_data = json.load(open('output.json', 'r'))
-        json_url_data = json.load(open(path + 'bookkeeping.json'))
-        while True:
-            input = raw_input("Search here: ")
-            if input.lower() == 'quit' or input.lower() == 'exit':
-                return
-            query_index(input, json_data, json_url_data)
-
 
 def showSnippet(docID, positions):
     file = open((path + docID), "r")
     cleantxtfile = BeautifulSoup(file, "lxml").text
     line = re.sub(r'\W', ' ', cleantxtfile).lower().split()
     eof = len(line)
+    positions = positions[::-2]
     for p in positions:
-        start = p-5 if p>=5 else 0
-        end = p+5 if (p+5)<=eof else eof
-        for i in range(start,end):
+        start = p-5 if p >= 5 else 0
+        end = p+5 if (p+5) <= eof else eof
+        for i in range(start, end):
             print line[i].encode('ascii', 'ignore'),
         else:
             print
     return
 
-# Added by Qiushi, return Snippet for Http Service
-def getSnippet(docID, positions):
-    snippet = ''
-    file = open((path + docID), "r")
-    cleantxtfile = BeautifulSoup(file, "lxml").text
-    line = re.sub(r'\W', ' ', cleantxtfile).lower().split()
-    eof = len(line)
-    for p in positions:
-        start = p-5 if p>=5 else 0
-        end = p+5 if (p+5)<=eof else eof
-        for i in range(start,end):
-            snippet += str(line[i].encode('ascii', 'ignore')) + ' '
+# new for milestone 3
+def query_index_better(input, index_dict, url_dict, totalDocuments):
+    resultList = []
+    scoring = {}
 
-    return snippet
+    query = re.sub(r'\W', ' ', input).lower().split()
+    for q in query:
+        if q in index_dict:
+            # debugging purposes
+            #print index_dict[q]
+            resultList.append(index_dict[q])
 
+    intersectKeys = set(resultList[0].keys())
+    for r in resultList[1:]:
+        intersectKeys |= set(r.keys())
 
-# Scalable query index, could handle n-numbers of query
-# Need to improve: the order of the query
+    # debugging purposes
+    print resultList
+    print len(resultList)
+    #print intersectKeys
+
+    for q in query:
+        for id in intersectKeys:
+            if id in index_dict[q]:
+                tf = math.log(1 + len(index_dict[q][id]))
+                idf = math.log(totalDocuments / len(index_dict[q]))
+                weight = tf * idf
+                if id not in scoring:
+                    scoring[id] = weight
+                else:
+                    scoring[id] += weight
+                # debugging purposes
+                # print q, id, tf, idf, weight
+    scoring = sorted(scoring.items(), key = operator.itemgetter(1), reverse = True)
+
+    # debugging purposes
+    #print scoring
+    #print resultList
+
+    intersectDict = OrderedDict()
+    # Take the top 5 weight score
+    for j in range(5):
+        key = scoring[j][0]
+        intersectDict[key] = []
+        for r in resultList:
+            # debugging purposes
+            #print r
+            if key in r:
+                # debugging purposes
+                #print r[key]
+                intersectDict[key].extend(r[key][0:2])
+    # debugging purposes
+    print intersectDict
+
+    i = 0
+    for key, positions in intersectDict.iteritems():
+        if i == 5:
+            break
+        docID = key.replace('_', '/')
+        if docID in url_dict:
+            url = url_dict[docID]
+            print("http://" + url)
+            showSnippet(docID, positions)
+            i += 1
+
+# old for milestone 2
 def query_index(input, index_dict, url_dict):
     query = re.sub(r'\W', ' ', input).lower().split()
     resultList = []
@@ -114,27 +151,54 @@ def query_index(input, index_dict, url_dict):
 
     print intersectKeys
 
-    intersectDic = OrderedDict()
+    intersectDict = OrderedDict()
     for key in intersectKeys:
-        intersectDic[key] = []
+        intersectDict[key] = []
         for r in resultList:
-            intersectDic[key].extend(sorted(r[key]))
-        #print sorted(intersectDic[key])
-    print intersectDic
+            if key in r:
+                intersectDict[key].extend(sorted(r[key]))
+    print intersectDict
 
     i = 0
-    for key, positions in intersectDic.iteritems():
+    for key, positions in intersectDict.iteritems():
         if i == 5:
             break
-
         docID = key.replace('_', '/')
         if docID in url_dict:
             url = url_dict[docID]
-            #print "DocID: " + str(docID) + ", URL: " + url
             print("http://" + url)
             showSnippet(docID, positions)
             i += 1
 
+def outputNormal(a_dictionary):
+    with open('output.json', 'w') as fp:
+        json.dump(a_dictionary, fp)
+
+def outputBeautify(a_dictionary, totalDocuments):
+    w = open('outputbeauty.txt', 'w')
+    w.write("Total unique words = " + str(len(a_dictionary.keys())) + "\n")
+    w.write("Total documents = " + str(totalDocuments) + "\n")
+    for i in a_dictionary:
+        w.write(str(i) + " --> ")
+        for j in a_dictionary[i]:
+            w.write(str(j) + " [" + str(a_dictionary[i][j]) + "], ")
+        w.write("\n")
+    w.write("Total size of index on disk: " + str(os.path.getsize('outputbeauty.txt')) + " bytes")
+    w.close()
+
+# Added by Qiushi, return Snippet for Http Service
+def getSnippet(docID, positions):
+    snippet = ''
+    file = open((path + docID), "r")
+    cleantxtfile = BeautifulSoup(file, "lxml").text
+    line = re.sub(r'\W', ' ', cleantxtfile).lower().split()
+    eof = len(line)
+    for p in positions:
+        start = p-5 if p >= 5 else 0
+        end = p+5 if (p+5) <= eof else eof
+        for i in range(start, end):
+            snippet += str(line[i].encode('ascii', 'ignore')) + ' '
+    return snippet
 
 # Added by Qiushi, query index for Http Service, return JSON
 def query_index_rest(input, index_dict, url_dict):
@@ -176,24 +240,6 @@ def query_index_rest(input, index_dict, url_dict):
 
     resultJSON += '\n]'
     return resultJSON
-
-def outputNormal(a_dictionary):
-    with open('output.json', 'w') as fp:
-        json.dump(a_dictionary, fp)
-
-
-def outputBeautify(a_dictionary, totalDocuments):
-    w = open('outputbeauty.txt', 'w')
-    w.write("Total unique words = " + str(len(a_dictionary.keys())) + "\n")
-    w.write("Total documents = " + str(totalDocuments) + "\n")
-    for i in a_dictionary:
-        w.write(str(i) + " --> ")
-        for j in a_dictionary[i]:
-            w.write(str(j) + " [" + str(a_dictionary[i][j]) + "], ")
-        w.write("\n")
-    w.write("Total size of index on disk: " + str(os.path.getsize('outputbeauty.txt')) + " bytes")
-    w.close()
-
 
 # Added bushi, for generate a json file of our index
 def outputJSON(a_dictionary):
