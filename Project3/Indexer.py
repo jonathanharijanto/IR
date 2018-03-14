@@ -381,7 +381,7 @@ class HttpService(BaseHTTPRequestHandler):
         input = q['search'].pop()
         print "search = " + input
 
-        if query == 'o' or query == 'old' or query == 'O' or query == 'OLD':
+        if self.query == 'o' or self.query == 'old' or self.query == 'O' or self.query == 'OLD':
             resultJSON = query_index_rest(input, self.json_data, self.json_url_data)
         else:
             resultJSON = query_index_better_rest(input, self.json_data, self.json_url_data)
