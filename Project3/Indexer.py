@@ -201,7 +201,8 @@ def getSnippet(docID, positions):
         start = p-5 if p >= 5 else 0
         end = p+5 if (p+5) <= eof else eof
         for i in range(start, end):
-            snippet += str(line[i].encode('ascii', 'ignore')) + ' <br> '
+            snippet += str(line[i].encode('ascii', 'ignore')) + ' '
+        snippet += '\n'
     return snippet
 
 # Added by Qiushi
