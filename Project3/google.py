@@ -7,6 +7,7 @@
 from googleapiclient.discovery import build
 
 # Kyungwoo Hyun's Google Account
+# TEST URL: https://cse.google.com/cse/publicurl?cx=016664344819740721867:h_1vnsdwvoo
 api_key = 'AIzaSyBqu3fD-SNVcUW_vuCgV38WJWgNDnlR1Bo'
 cx = '016664344819740721867:h_1vnsdwvoo' #only in *.ics.uci.edu
 
