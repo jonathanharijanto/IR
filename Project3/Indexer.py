@@ -373,6 +373,7 @@ class HttpService(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        totalDocuments = 37497
         self._set_headers()
         import urlparse
         o = urlparse.urlparse(self.path)
@@ -384,7 +385,7 @@ class HttpService(BaseHTTPRequestHandler):
         if self.query == 'o' or self.query == 'old' or self.query == 'O' or self.query == 'OLD':
             resultJSON = query_index_rest(input, self.json_data, self.json_url_data)
         else:
-            resultJSON = query_index_better_rest(input, self.json_data, self.json_url_data)
+            resultJSON = query_index_better_rest(input, self.json_data, self.json_url_data, totalDocuments)
 
         print "result = " + resultJSON
 
@@ -408,7 +409,6 @@ class HttpService(BaseHTTPRequestHandler):
 
 # Added by Qiushi, entrance function for http server
 def run(server_class=HTTPServer, handler_class=HttpService, port=8088, query='new'):
-    totalDocuments = 0
     inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
 
     print 'Starting httpd...'
