@@ -274,7 +274,7 @@ def query_index_better_rest(input, index_dict, url_dict, totalDocuments):
             if i > 0:
                 resultJSON += ',\n'
             resultJSON += '{'
-            resultJSON += '\"title\": \"' + title + '\",'
+            resultJSON += '\"title\": \"' + title.strip() + '\",'
             resultJSON += '\"url\": \"' + fullUrl + '\",'
             resultJSON += '\"description\": \"' + description + '\"'
             resultJSON += '}'
@@ -316,7 +316,7 @@ def query_index_rest(input, index_dict, url_dict):
             if i > 0:
                 resultJSON += ',\n'
             resultJSON += '{'
-            resultJSON += '\"title\": \"' + title + '\",'
+            resultJSON += '\"title\": \"' + title.strip() + '\",'
             resultJSON += '\"url\": \"' + fullUrl + '\",'
             resultJSON += '\"description\": \"' + description + '\"'
             resultJSON += '}'
@@ -389,7 +389,7 @@ class HttpService(BaseHTTPRequestHandler):
 
         print "result = " + resultJSON
 
-        self.wfile.write(resultJSON)
+        self.wfile.write(resultJSON.encode('utf8'))
 
     def do_HEAD(self):
         self._set_headers()
