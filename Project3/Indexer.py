@@ -20,7 +20,7 @@ def main():
     else:
         print "Opening json file, please wait..."
         json_data = json.load(open('output.json', 'r'))
-        json_url_data = json.load(open(path + 'bookkeeping.json'))
+        json_url_data = json.load(open(path + 'bookkeepingNew.json'))
         while True:
             input = raw_input("Search here: ")
             query_index_better(input, json_data, json_url_data, totalDocuments)
@@ -128,7 +128,10 @@ def query_index_better(input, index_dict, url_dict, totalDocuments):
             break
         docID = key.replace('_', '/')
         if docID in url_dict:
-            url = url_dict[docID]
+            url = url_dict[docID]['url']
+            title = url_dict[docID]['title']
+            print('------------------------------------------------------------------')
+            print(title)
             print("http://" + url)
             showSnippet(docID, positions)
             i += 1
@@ -193,12 +196,92 @@ def getSnippet(docID, positions):
     cleantxtfile = BeautifulSoup(file, "lxml").text
     line = re.sub(r'\W', ' ', cleantxtfile).lower().split()
     eof = len(line)
+    positions = positions[::-2]
     for p in positions:
         start = p-5 if p >= 5 else 0
         end = p+5 if (p+5) <= eof else eof
         for i in range(start, end):
             snippet += str(line[i].encode('ascii', 'ignore')) + ' '
     return snippet
+
+# Added by Qiushi
+# new for milestone 3
+def query_index_better_rest(input, index_dict, url_dict, totalDocuments):
+    resultList = []
+    scoring = {}
+
+    query = re.sub(r'\W', ' ', input).lower().split()
+    for q in query:
+        if q in index_dict:
+            # debugging purposes
+            #print index_dict[q]
+            resultList.append(index_dict[q])
+
+    intersectKeys = set(resultList[0].keys())
+    for r in resultList[1:]:
+        intersectKeys |= set(r.keys())
+
+    # debugging purposes
+    print resultList
+    print len(resultList)
+    #print intersectKeys
+
+    for q in query:
+        for id in intersectKeys:
+            if id in index_dict[q]:
+                tf = math.log(1 + len(index_dict[q][id]))
+                idf = math.log(totalDocuments / len(index_dict[q]))
+                weight = tf * idf
+                if id not in scoring:
+                    scoring[id] = weight
+                else:
+                    scoring[id] += weight
+                # debugging purposes
+                # print q, id, tf, idf, weight
+    scoring = sorted(scoring.items(), key = operator.itemgetter(1), reverse = True)
+
+    # debugging purposes
+    #print scoring
+    #print resultList
+
+    intersectDict = OrderedDict()
+    # Take the top 5 weight score
+    for j in range(5):
+        key = scoring[j][0]
+        intersectDict[key] = []
+        for r in resultList:
+            # debugging purposes
+            #print r
+            if key in r:
+                # debugging purposes
+                #print r[key]
+                intersectDict[key].extend(r[key][0:2])
+    # debugging purposes
+    print intersectDict
+
+    resultJSON = '[\n'
+
+    i = 0
+    for key, positions in intersectDict.iteritems():
+        if i == 5:
+            break
+        docID = key.replace('_', '/')
+        if docID in url_dict:
+            url = url_dict[docID]['url']
+            title = url_dict[docID]['title']
+            fullUrl = 'http://' + url
+            description = getSnippet(docID, positions)
+            if i > 0:
+                resultJSON += ',\n'
+            resultJSON += '{'
+            resultJSON += '\"title\": \"' + title.strip() + '\",'
+            resultJSON += '\"url\": \"' + fullUrl + '\",'
+            resultJSON += '\"description\": \"' + description + '\"'
+            resultJSON += '}'
+            i += 1
+
+    resultJSON += '\n]'
+    return resultJSON
 
 # Added by Qiushi, query index for Http Service, return JSON
 def query_index_rest(input, index_dict, url_dict):
@@ -226,13 +309,14 @@ def query_index_rest(input, index_dict, url_dict):
 
         docID = key.replace('_', '/')
         if docID in url_dict:
-            url = url_dict[docID]
+            url = url_dict[docID]['url']
+            title = url_dict[docID]['title']
             fullUrl = 'http://' + url
             description = getSnippet(docID, positions)
             if i > 0:
                 resultJSON += ',\n'
             resultJSON += '{'
-            resultJSON += '\"title\": \"' + docID + '\",'
+            resultJSON += '\"title\": \"' + title.strip() + '\",'
             resultJSON += '\"url\": \"' + fullUrl + '\",'
             resultJSON += '\"description\": \"' + description + '\"'
             resultJSON += '}'
@@ -276,9 +360,11 @@ def loadJSON():
 # Added by Qiushi, for handle http request
 class HttpService(BaseHTTPRequestHandler):
 
+    # def __init__(self, jsonData, jsonUrlData, query, *args):
     def __init__(self, jsonData, jsonUrlData, *args):
         self.json_data = jsonData
         self.json_url_data = jsonUrlData
+        # self.query = query
         BaseHTTPRequestHandler.__init__(self, *args)
 
     def _set_headers(self):
@@ -288,19 +374,26 @@ class HttpService(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        totalDocuments = 37497
         self._set_headers()
         import urlparse
         o = urlparse.urlparse(self.path)
         q = urlparse.parse_qs(o.query)
         print q
         input = q['search'].pop()
+        version = q['version'].pop()
         print "search = " + input
+        print "version = " + version
 
-        resultJSON = query_index_rest(input, self.json_data, self.json_url_data)
+        #if self.query == 'o' or self.query == 'old' or self.query == 'O' or self.query == 'OLD':
+        if version == 'naive':
+            resultJSON = query_index_rest(input, self.json_data, self.json_url_data)
+        else:
+            resultJSON = query_index_better_rest(input, self.json_data, self.json_url_data, totalDocuments)
 
         print "result = " + resultJSON
 
-        self.wfile.write(resultJSON)
+        self.wfile.write(resultJSON.encode('utf8'))
 
     def do_HEAD(self):
         self._set_headers()
@@ -319,9 +412,9 @@ class HttpService(BaseHTTPRequestHandler):
 
 
 # Added by Qiushi, entrance function for http server
-def run(server_class=HTTPServer, handler_class=HttpService, port=8088):
-    totalDocuments = 0
+def run(server_class=HTTPServer, handler_class=HttpService, port=8088, query='new'):
     inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
+    totalDocuments = 37497
 
     print 'Starting httpd...'
     if not os.path.isfile("output.json"):
@@ -332,12 +425,13 @@ def run(server_class=HTTPServer, handler_class=HttpService, port=8088):
     print "Loading output.json..."
     json_data = json.load(open('output.json', 'r'))
     print "Loading bookkeeping.json..."
-    json_url_data = json.load(open(path + 'bookkeeping.json'))
+    json_url_data = json.load(open(path + 'bookkeepingNew.json'))
     print "Loading finished."
 
     server_address = ('', port)
 
     def handler(*args):
+        #handler_class(json_data, json_url_data, query, *args)
         handler_class(json_data, json_url_data, *args)
     httpd = server_class(server_address, handler)
     print "Web server started!"
@@ -354,11 +448,14 @@ if __name__ == '__main__':
         '-m', '--mode', help='mode [s]erver or [t]erminal, default terminal')
     parser.add_argument(
         '-p', '--port', type=int, help='point (only valid when -m is server)')
+    # parser.add_argument(
+    #     '-q', '--query', help='query [o]ld or [n]ew, default new')
 
     args = parser.parse_args()
 
     if args.mode == 's' or args.mode == 'server' or args.mode == 'S' or args.mode == 'SERVER':
         if args.port:
+            # run(port=int(args.port), query=args.query)
             run(port=int(args.port))
         else:
             run()

@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('myApp.search', ['ngRoute'])
+angular.module('myApp.search', ['ngRoute', 'angular-loading-bar'])
 
 .config(['$locationProvider', '$routeProvider', function($locationProvider, $routeProvider) {
   $locationProvider.html5Mode({
@@ -22,15 +22,20 @@ angular.module('myApp.search', ['ngRoute'])
 
   $scope.search = function() {
 
+    console.log("searchString = " + $scope.searchString);
+    console.log("version = " + $scope.version);
+
     var data = {
-      search: $scope.searchString
+      search: $scope.searchString,
+      version: $scope.version
     };
 
     var config = {
       params: data
     };
 
-    var url = 'http://128.195.52.128:8088';
+    //var url = 'http://128.195.52.128:8088';
+    var url = 'http://localhost:8088';
 
     var start = new Date().getTime();
     console.log("Request sent... time = " + start + "milis");
@@ -114,6 +119,7 @@ angular.module('myApp.search', ['ngRoute'])
 
   if ($scope.searchParam != null) {
     $scope.searchString = $scope.searchParam;
+    $scope.version = 'naive';
 
     $scope.search();
 
