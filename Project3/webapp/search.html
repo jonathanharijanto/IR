@@ -16,10 +16,12 @@
 
     <link rel="stylesheet" href="igoogle.css">
     <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="loadingbar/loading-bar.css" rel="stylesheet">
     <script src="jquery/jquery-3.3.1.min.js"></script>
     <script src="bower_components/angular/angular.js"></script>
     <script src="bower_components/angular-route/angular-route.js"></script>
     <script src="search.js"></script>
+    <script src="loadingbar/loading-bar.js"></script>
 
 </head>
 
@@ -33,15 +35,29 @@
                         iGoogle
                     </h2>
                     <div class="search-form">
-                        <form name="searchForm" action="search.html" type="GET">
+                        <form name="searchForm" > <!--action="search.html" type="GET"-->
                             <div class="input-group">
                                 <input ng-model="searchString" type="text"
                                        name="search" class="form-control input-lg">
                                 &nbsp;
                                 <div class="input-group-btn">
-                                    <button class="btn btn-lg btn-primary" type="submit">
+                                    <button class="btn btn-lg btn-primary" type="submit" ng-click="search()">
                                         Search
                                     </button>
+                                </div>
+                                <div>
+                                    <label>
+                                        <input type="radio" ng-model="version" value="naive">
+                                        Naive
+                                    </label>
+                                    <label>
+                                        <input type="radio" ng-model="version" value="tfidf">
+                                        TF-IDF
+                                    </label>
+                                    <label>
+                                        <input type="radio" ng-model="version" value="pagerank">
+                                        PageRank
+                                    </label>
                                 </div>
                             </div>
                         </form>

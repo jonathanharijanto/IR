@@ -360,10 +360,11 @@ def loadJSON():
 # Added by Qiushi, for handle http request
 class HttpService(BaseHTTPRequestHandler):
 
-    def __init__(self, jsonData, jsonUrlData, query, *args):
+    # def __init__(self, jsonData, jsonUrlData, query, *args):
+    def __init__(self, jsonData, jsonUrlData, *args):
         self.json_data = jsonData
         self.json_url_data = jsonUrlData
-        self.query = query
+        # self.query = query
         BaseHTTPRequestHandler.__init__(self, *args)
 
     def _set_headers(self):
@@ -380,9 +381,12 @@ class HttpService(BaseHTTPRequestHandler):
         q = urlparse.parse_qs(o.query)
         print q
         input = q['search'].pop()
+        version = q['version'].pop()
         print "search = " + input
+        print "version = " + version
 
-        if self.query == 'o' or self.query == 'old' or self.query == 'O' or self.query == 'OLD':
+        #if self.query == 'o' or self.query == 'old' or self.query == 'O' or self.query == 'OLD':
+        if version == 'naive':
             resultJSON = query_index_rest(input, self.json_data, self.json_url_data)
         else:
             resultJSON = query_index_better_rest(input, self.json_data, self.json_url_data, totalDocuments)
@@ -410,6 +414,7 @@ class HttpService(BaseHTTPRequestHandler):
 # Added by Qiushi, entrance function for http server
 def run(server_class=HTTPServer, handler_class=HttpService, port=8088, query='new'):
     inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
+    totalDocuments = 37497
 
     print 'Starting httpd...'
     if not os.path.isfile("output.json"):
@@ -426,7 +431,8 @@ def run(server_class=HTTPServer, handler_class=HttpService, port=8088, query='ne
     server_address = ('', port)
 
     def handler(*args):
-        handler_class(json_data, json_url_data, query, *args)
+        #handler_class(json_data, json_url_data, query, *args)
+        handler_class(json_data, json_url_data, *args)
     httpd = server_class(server_address, handler)
     print "Web server started!"
     httpd.serve_forever()
@@ -442,15 +448,16 @@ if __name__ == '__main__':
         '-m', '--mode', help='mode [s]erver or [t]erminal, default terminal')
     parser.add_argument(
         '-p', '--port', type=int, help='point (only valid when -m is server)')
-    parser.add_argument(
-        '-q', '--query', help='query [o]ld or [n]ew, default new')
+    # parser.add_argument(
+    #     '-q', '--query', help='query [o]ld or [n]ew, default new')
 
     args = parser.parse_args()
 
     if args.mode == 's' or args.mode == 'server' or args.mode == 'S' or args.mode == 'SERVER':
         if args.port:
-            run(port=int(args.port), query=args.query)
+            # run(port=int(args.port), query=args.query)
+            run(port=int(args.port))
         else:
-            run(query=args.query)
+            run()
     else:
         main()
