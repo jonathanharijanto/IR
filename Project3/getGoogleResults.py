@@ -12,13 +12,13 @@ from googleapiclient.discovery import build
 api_key = 'AIzaSyBqu3fD-SNVcUW_vuCgV38WJWgNDnlR1Bo'
 cx = '016664344819740721867:h_1vnsdwvoo' #only in *.ics.uci.edu
 
-def getTop5(items):
+def getTop(items,n):
     results = []
     i = 1
     for item in items:
         results.append(item['link'])
 
-        if i == 5: break
+        if i == n: break
         else: i += 1
 
     return results
@@ -43,7 +43,10 @@ googleResults = []
 for q in queries:
     res = service.cse().list(q=q,cx=cx,).execute()
     items = res['items']
-    googleResults.append(getTop5(items))
+    res = service.cse().list(q=q,start=10,cx=cx,).execute()
+    items.extend(res['items'])
+    print len(items)
+    googleResults.append(getTop(items,20))
 
 with open('googleResults.json', 'w') as fp:
     json.dump(googleResults, fp)
