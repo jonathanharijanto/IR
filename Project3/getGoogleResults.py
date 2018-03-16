@@ -43,7 +43,7 @@ googleResults = []
 for q in queries:
     res = service.cse().list(q=q,cx=cx,).execute()
     items = res['items']
-    res = service.cse().list(q=q,start=10,cx=cx,).execute()
+    res = service.cse().list(q=q,start=11,cx=cx,).execute()
     items.extend(res['items'])
     print len(items)
     googleResults.append(getTop(items,20))
