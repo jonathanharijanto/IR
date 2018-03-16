@@ -118,16 +118,10 @@ def query_index_better(input, index_dict, url_dict, totalDocuments):
     return resultURLs
 
 # reference: https://www.kaggle.com/wendykan/ndcg-example
-def getDCG5(r, k=5, method=1):
+def getDCG5(r, k=5):
     r = np.asfarray(r)[:k]
-    if r.size:
-        if method == 0:
-            return r[0] + np.sum(r[1:] / np.log2(np.arange(2, r.size + 1)))
-        elif method == 1:
-            return np.sum(r / np.log2(np.arange(2, r.size + 2)))
-        else:
-            raise ValueError('method must be 0 or 1.')
-    return 0.
+    if r.size: return r[0] + np.sum(r[1:] / np.log2(np.arange(2, r.size + 1)))
+    else: return 0.
 
 def getNDCG5(DCGlist):
     print DCGlist
