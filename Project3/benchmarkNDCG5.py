@@ -118,7 +118,7 @@ def query_index_better(input, index_dict, url_dict, totalDocuments):
     return resultURLs
 
 # reference: https://www.kaggle.com/wendykan/ndcg-example
-def getDCG5(r, k=5, method=1):
+def getDCG5(r, k=20, method=1):
     r = np.asfarray(r)[:k]
     if r.size:
         if method == 0:
@@ -170,17 +170,17 @@ for q in queries:
 
     m2_DCG = []
     m3_DCG = []
-    for j in range(0,5):
+    for j in range(0,20):
         o = Oracle[j]
 
         m2_best = 0
         for m in M2: m2_best = max(m2_best, SequenceMatcher(None, o, m).ratio())
-        if m2_best >= similarity_threshold: m2_DCG.append(1)
+        if m2_best >= similarity_threshold: m2_DCG.append(math.trunc((19-j)/5.))
         else: m2_DCG.append(0)
 
         m3_best = 0
         for m in M3: m3_best = max(m3_best, SequenceMatcher(None, o, m).ratio())
-        if m3_best >= similarity_threshold: m3_DCG.append(1)
+        if m3_best >= similarity_threshold: m3_DCG.append(math.trunc((19-j)/5.))
         else: m3_DCG.append(0)
 
     i += 1
