@@ -118,7 +118,7 @@ def query_index_better(input, index_dict, url_dict, totalDocuments):
     return resultURLs
 
 # reference: https://www.kaggle.com/wendykan/ndcg-example
-def getDCG5(r, k=20, method=1):
+def getDCG5(r, k=5, method=1):
     r = np.asfarray(r)[:k]
     if r.size:
         if method == 0:
@@ -130,11 +130,13 @@ def getDCG5(r, k=20, method=1):
     return 0.
 
 def getNDCG5(DCGlist):
-    #print DCGlist
-    #print sorted(DCGlist, reverse=True)
+    print DCGlist
+    print sorted(DCGlist, reverse=True)
     perfectDCG = getDCG5(sorted(DCGlist, reverse=True))
     if not perfectDCG:
         return 0.
+    print getDCG5(DCGlist)
+    print perfectDCG
     return getDCG5(DCGlist) / perfectDCG
 
 path = 'webpages_clean/'
@@ -170,17 +172,32 @@ for q in queries:
 
     m2_DCG = []
     m3_DCG = []
-    for j in range(0,20):
-        o = Oracle[j]
+    for j in range(0,5):
 
+        m2_row = M2[j]
         m2_best = 0
-        for m in M2: m2_best = max(m2_best, SequenceMatcher(None, o, m).ratio())
-        if m2_best >= similarity_threshold: m2_DCG.append(math.trunc((19-j)/5.))
+        m2_relevance = 0
+        for k in range(0,len(Oracle)):
+            o = Oracle[k]
+            m2_temp = SequenceMatcher(None, o, m2_row).ratio()
+            if m2_temp > m2_best:
+                m2_best = m2_temp
+                m2_relevance = math.trunc((19 - k) / 5.)
+
+        if m2_best >= similarity_threshold: m2_DCG.append(m2_relevance)
         else: m2_DCG.append(0)
 
+        m3_row = M3[j]
         m3_best = 0
-        for m in M3: m3_best = max(m3_best, SequenceMatcher(None, o, m).ratio())
-        if m3_best >= similarity_threshold: m3_DCG.append(math.trunc((19-j)/5.))
+        m3_relevance = 0
+        for k in range(0,len(Oracle)):
+            o = Oracle[k]
+            m3_temp = SequenceMatcher(None, o, m3_row).ratio()
+            if m3_temp > m3_best:
+                m3_best = m3_temp
+                m3_relevance = math.trunc((19 - k) / 5.)
+
+        if m3_best >= similarity_threshold: m3_DCG.append(m3_relevance)
         else: m3_DCG.append(0)
 
     i += 1
