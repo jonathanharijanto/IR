@@ -62,11 +62,6 @@ def add_titles():
     print "Loading bookkeeping.json ..."
     bookkeeping = json.load(open(path1 + 'bookkeeping.json'))
 
-    # 2) Load the pagelinks.json into dictionary
-    print datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-    print "Loading pagelinks.json ..."
-    pagelinks = json.loads(regex.sub(r"\\\\", open('pagelinks.json').read()), object_pairs_hook=OrderedDict)
-
     # 3) Traverse bookkeeping: for each url
     #     3-1) get the title from http request to the url
     #     3-2) write the title back to the value of the docID into bookkeeping
@@ -76,22 +71,26 @@ def add_titles():
     print "Traversing the bookkeeping ..."
     for filePath, url in bookkeeping.items():
         title = ''
-        progress += 1
+
         if progress % 30 == 1:
             print "processed " + str(progress) + ", titles = " + str(titles)
         try:
             soup = BeautifulSoup(urllib2.urlopen('http://' + url, timeout=10), 'lxml')
             title = soup.title.string
-            titles += 1
         except Exception as e:
-            print e.message
+            print "loading http://" + url
+            print "error: " + e.message
         if not (title and title.strip()):
             title = filePath
-            titles -= 1
+        else:
+            titles += 1
+
         newval = {}
         newval['url'] = url
         newval['title'] = title
         bookkeeping[filePath] = newval
+
+        progress += 1
 
     print datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
     print "Traversing finished.  titles = " + str(titles)
