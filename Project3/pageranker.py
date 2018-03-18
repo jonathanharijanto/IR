@@ -140,15 +140,16 @@ def add_titles():
             except Exception as e:
                 print "loading http://" + url
                 print "error: " + e.message
-            if not (title and title.strip()):
-                title = filePath
-            else:
-                titles += 1
 
-            newval = {}
-            newval['url'] = url
-            newval['title'] = title
-            bookkeeping[filePath] = newval
+        if not (title and title.strip()):
+            title = filePath
+        else:
+            titles += 1
+
+        newval = {}
+        newval['url'] = url
+        newval['title'] = title
+        bookkeeping[filePath] = newval
 
         progress += 1
 
