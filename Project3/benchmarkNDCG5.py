@@ -118,20 +118,22 @@ def query_index_better(input, index_dict, url_dict, totalDocuments):
     return resultURLs
 
 # reference: https://www.kaggle.com/wendykan/ndcg-example
-def getDCG5(r, k=5):
+def getDCG(r, k=5):
     r = np.asfarray(r)[:k]
     if r.size: return r[0] + np.sum(r[1:] / np.log2(np.arange(2, r.size + 1)))
     else: return 0.
 
 def getNDCG5(DCGlist):
-    print DCGlist
-    print sorted(DCGlist, reverse=True)
-    perfectDCG = getDCG5(sorted(DCGlist, reverse=True))
-    if not perfectDCG:
+    print 'relevance:', DCGlist
+    iDCGlist = sorted(DCGlist, reverse=True)
+    if not getDCG(iDCGlist):
+        print('Nothing is matched. all DCG numbers are 0.')
         return 0.
-    print getDCG5(DCGlist)
-    print perfectDCG
-    return getDCG5(DCGlist) / perfectDCG
+
+    print 'actual DCG:', getDCG(DCGlist,1), getDCG(DCGlist,2), getDCG(DCGlist,3), getDCG(DCGlist,4), getDCG(DCGlist,5)
+    print 'ideal DCG:', getDCG(iDCGlist,1), getDCG(iDCGlist,2), getDCG(iDCGlist,3), getDCG(iDCGlist,4), getDCG(iDCGlist,5)
+    print 'normalized DCG:', getDCG(DCGlist,1)/getDCG(iDCGlist,1), getDCG(DCGlist,2)/getDCG(iDCGlist,2), getDCG(DCGlist,3)/getDCG(iDCGlist,3), getDCG(DCGlist,4)/getDCG(iDCGlist,4), getDCG(DCGlist,5)/getDCG(iDCGlist,5)
+    return getDCG(DCGlist,5)/getDCG(iDCGlist,5)
 
 path = 'webpages_clean/'
 queries = [
@@ -196,5 +198,9 @@ for q in queries:
 
     i += 1
 
+    print('M2 case -------')
     print('M2 NDCG@5', getNDCG5(m2_DCG))
+    print('')
+    print('M3 case -------')
     print('M3 NDCG@5', getNDCG5(m3_DCG))
+    print('--------------------------------------')
