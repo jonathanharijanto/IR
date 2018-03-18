@@ -2,7 +2,8 @@ import json
 from collections import OrderedDict
 from bs4 import BeautifulSoup
 import re
-#import networkx as nx
+import networkx as nx
+import urllib2
 
 path1 = 'webpages_clean/'
 path2 = 'docs/'
@@ -21,10 +22,12 @@ def preprocess():
     print "Loading pagelinks.json ..."
     pagelinks = json.loads(regex.sub(r"\\\\", open('pagelinks.json').read()), object_pairs_hook=OrderedDict)
 
-    # 3) Traverse bookkeeping and look up the original html file 'index' from pagelinks:
-    #     3-1) read the 'index'.txt file
-    #     3-2) find the title of this document
+    # 3) Traverse bookkeeping: for each url
+    #     3-1) look up the 'index' from pagelinks
+    #     3-2) get the title from http request to the url
     #     3-3) write the title back to the value of the docID into bookkeeping
+    #     3-4) write the index back to the filemap
+
     hits = 0
     progress = 0
     print "Traversing the bookkeeping ..."
@@ -38,8 +41,7 @@ def preprocess():
             index = pagelinks.keys().index('http://' + url)
             hits += 1
             try:
-                doc = open(path2 + str(index) + '.txt')
-                soup = BeautifulSoup(doc.read(), "lxml")
+                soup = BeautifulSoup(urllib2.urlopen('http://' + url))
                 title = soup.title.string
             except Exception as e:
                 print e.message
@@ -56,9 +58,9 @@ def preprocess():
     print "Traversing finished.  hits = " + str(hits)
 
     # 4) Write back the bookkeepingNew.json
-    #print "Writing back the bookkeepingNew.json"
-    #with open(path1 + 'bookkeepingNew.json', 'w') as f:
-    #    json.dump(bookkeeping, f)
+    print "Writing back the bookkeepingNew.json"
+    with open(path1 + 'bookkeepingNew.json', 'w') as f:
+       json.dump(bookkeeping, f)
 
     # 5) Write back the filemap.json
     print "Writing back the filemap.json"
@@ -66,8 +68,18 @@ def preprocess():
         json.dump(filemap, f)
 
 
-#def pagerank():
-   # G = nx.Graph()
+# def pagerank():
+#     # 1) Generate the graph by replacing the urls by indexes
+#     # 1-1) Load the pagelinks.json into dictionary
+#     print "Loading pagelinks.json ..."
+#     pagelinks = json.loads(regex.sub(r"\\\\", open('pagelinks.json').read()), object_pairs_hook=OrderedDict)
+#
+#     # 1-2) Traverse the pagelinks and replace each url with index and drop all urls not indexed
+#     for vertex, edgelist in pagelinks.items():
+#
+#
+#     # 2) Create networkx graph
+#     G = nx.Graph()
 
 
 if __name__ == '__main__':
