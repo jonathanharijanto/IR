@@ -204,6 +204,93 @@ def getSnippet(docID, positions):
             snippet += str(line[i].encode('ascii', 'ignore')) + ' '
     return snippet
 
+
+# Added by Qiushi
+# new for milestone 3 + pagerank
+def query_index_pr_rest(input, index_dict, url_dict, pr, totalDocuments):
+    resultList = []
+    scoring = {}
+
+    query = re.sub(r'\W', ' ', input).lower().split()
+    for q in query:
+        if q in index_dict:
+            # debugging purposes
+            #print index_dict[q]
+            resultList.append(index_dict[q])
+
+    intersectKeys = set(resultList[0].keys())
+    for r in resultList[1:]:
+        intersectKeys |= set(r.keys())
+
+    # debugging purposes
+    print resultList
+    print len(resultList)
+    #print intersectKeys
+
+    for q in query:
+        for id in intersectKeys:
+            if id in index_dict[q]:
+                tf = math.log(1 + len(index_dict[q][id]))
+                idf = math.log(totalDocuments / len(index_dict[q]))
+                weight = tf * idf
+                #add pagerank
+                docID = id.replace('_', '/')
+                if docID in pr:
+                    weight = weight * pr[docID]
+                else:
+                    weight = weight * 0.00001
+                if id not in scoring:
+                    scoring[id] = weight
+                else:
+                    scoring[id] += weight
+                # debugging purposes
+                # print q, id, tf, idf, weight
+    scoring = sorted(scoring.items(), key = operator.itemgetter(1), reverse = True)
+
+    # debugging purposes
+    #print scoring
+    #print resultList
+
+    intersectDict = OrderedDict()
+    # Take the top 5 weight score
+    for j in range(5):
+        key = scoring[j][0]
+        intersectDict[key] = []
+        for r in resultList:
+            # debugging purposes
+            #print r
+            if key in r:
+                # debugging purposes
+                #print r[key]
+                intersectDict[key].extend(r[key][0:2])
+    # debugging purposes
+    print intersectDict
+
+    resultJSON = '[\n'
+
+    i = 0
+    for key, positions in intersectDict.iteritems():
+        if i == 5:
+            break
+        docID = key.replace('_', '/')
+        if docID in url_dict:
+            url = url_dict[docID]['url']
+            title = url_dict[docID]['title']
+            fullUrl = 'http://' + url
+            description = getSnippet(docID, positions)
+            if i > 0:
+                resultJSON += ',\n'
+            resultJSON += '{'
+            resultJSON += '\"title\": \"' + title.strip() + '\",'
+            resultJSON += '\"url\": \"' + fullUrl + '\",'
+            resultJSON += '\"description\": \"' + description + '\"'
+            resultJSON += '}'
+            i += 1
+
+    resultJSON += '\n]'
+    return resultJSON
+
+
 # Added by Qiushi
 # new for milestone 3
 def query_index_better_rest(input, index_dict, url_dict, totalDocuments):
@@ -361,9 +448,10 @@ def loadJSON():
 class HttpService(BaseHTTPRequestHandler):
 
     # def __init__(self, jsonData, jsonUrlData, query, *args):
-    def __init__(self, jsonData, jsonUrlData, *args):
+    def __init__(self, jsonData, jsonUrlData, pr, *args):
         self.json_data = jsonData
         self.json_url_data = jsonUrlData
+        self.pr = pr
         # self.query = query
         BaseHTTPRequestHandler.__init__(self, *args)
 
@@ -388,8 +476,10 @@ class HttpService(BaseHTTPRequestHandler):
         #if self.query == 'o' or self.query == 'old' or self.query == 'O' or self.query == 'OLD':
         if version == 'naive':
             resultJSON = query_index_rest(input, self.json_data, self.json_url_data)
-        else:
+        elif version == 'tfidf':
             resultJSON = query_index_better_rest(input, self.json_data, self.json_url_data, totalDocuments)
+        else:
+            resultJSON = query_index_pr_rest(input, self.json_data, self.json_url_data, self.pr, totalDocuments)
 
         print "result = " + resultJSON
 
@@ -426,13 +516,15 @@ def run(server_class=HTTPServer, handler_class=HttpService, port=8088, query='ne
     json_data = json.load(open('output.json', 'r'))
     print "Loading bookkeeping.json..."
     json_url_data = json.load(open(path + 'bookkeepingNew.json'))
+    print "Loading prmap.json..."
+    pr = json.load(open('prmap.json'))
     print "Loading finished."
 
     server_address = ('', port)
 
     def handler(*args):
         #handler_class(json_data, json_url_data, query, *args)
-        handler_class(json_data, json_url_data, *args)
+        handler_class(json_data, json_url_data, pr, *args)
     httpd = server_class(server_address, handler)
     print "Web server started!"
     httpd.serve_forever()

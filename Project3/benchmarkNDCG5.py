@@ -117,6 +117,80 @@ def query_index_better(input, index_dict, url_dict, totalDocuments):
             i += 1
     return resultURLs
 
+# new for milestone 3 + pagerank
+def query_index_better_pagerank(input, index_dict, url_dict, pr, totalDocuments):
+    resultList = []
+    scoring = {}
+
+    query = re.sub(r'\W', ' ', input).lower().split()
+    for q in query:
+        if q in index_dict:
+            # debugging purposes
+            #print index_dict[q]
+            resultList.append(index_dict[q])
+
+    intersectKeys = set(resultList[0].keys())
+    for r in resultList[1:]:
+        intersectKeys |= set(r.keys())
+
+    # debugging purposes
+    #print resultList
+    #print len(resultList)
+    #print intersectKeys
+
+    for q in query:
+        for id in intersectKeys:
+            if id in index_dict[q]:
+                tf = math.log(1 + len(index_dict[q][id]))
+                idf = math.log(totalDocuments / len(index_dict[q]))
+                weight = tf * idf
+                # add pagerank
+                docID = id.replace('_', '/')
+                if docID in pr:
+                    weight = weight * pr[docID]
+                else:
+                    weight = weight * 0.00001
+                if id not in scoring:
+                    scoring[id] = weight
+                else:
+                    scoring[id] += weight
+                # debugging purposes
+                # print q, id, tf, idf, weight
+    scoring = sorted(scoring.items(), key = operator.itemgetter(1), reverse = True)
+
+    # debugging purposes
+    #print scoring
+    #print resultList
+
+    intersectDict = OrderedDict()
+    # Take the top 5 weight score
+    for j in range(5):
+        key = scoring[j][0]
+        intersectDict[key] = []
+        for r in resultList:
+            # debugging purposes
+            #print r
+            if key in r:
+                # debugging purposes
+                #print r[key]
+                intersectDict[key].extend(r[key][0:2])
+    # debugging purposes
+    #print intersectDict
+
+    i = 0
+    resultURLs = []
+    for key, positions in intersectDict.iteritems():
+        if i == 5:
+            break
+        docID = key.replace('_', '/')
+        if docID in url_dict:
+            url = url_dict[docID]
+            #print("http://" + url)
+            resultURLs.append(url)
+            #showSnippet(docID, positions)
+            i += 1
+    return resultURLs
+
 # reference: https://www.kaggle.com/wendykan/ndcg-example
 def getDCG(r, k=5):
     r = np.asfarray(r)[:k]
@@ -153,6 +227,7 @@ inverted_index = defaultdict(lambda: defaultdict(lambda: list()))
 print "Opening json file, please wait..."
 json_data = json.load(open('output.json'))
 json_url_data = json.load(open(path + 'bookkeeping.json'))
+pr = json.load(open('prmap.json'))
 googleResults = json.load(open('googleResults.json'))
 i = 0
 similarity_threshold = 0.9
@@ -160,6 +235,7 @@ for q in queries:
     Oracle = [re.sub('https://','', re.sub('http://', '', o)) for o in googleResults[i]]
     M2 = query_index(q, json_data, json_url_data)
     M3 = query_index_better(q, json_data, json_url_data, totalDocuments)
+    M4 = query_index_better_pagerank(q, json_data, json_url_data, pr, totalDocuments)
 
     pprint.pprint(queries[i])
     #pprint.pprint(Oracle)
@@ -168,6 +244,7 @@ for q in queries:
 
     m2_DCG = []
     m3_DCG = []
+    m4_DCG = []
     for j in range(0,5):
 
         m2_row = M2[j]
@@ -196,6 +273,21 @@ for q in queries:
         if m3_best >= similarity_threshold: m3_DCG.append(m3_relevance)
         else: m3_DCG.append(0)
 
+        m4_row = M4[j]
+        m4_best = 0
+        m4_relevance = 0
+        for k in range(0, len(Oracle)):
+            o = Oracle[k]
+            m4_temp = SequenceMatcher(None, o, m4_row).ratio()
+            if m4_temp > m4_best:
+                m4_best = m4_temp
+                m4_relevance = math.trunc((19 - k) / 5.)
+
+        if m4_best >= similarity_threshold:
+            m4_DCG.append(m4_relevance)
+        else:
+            m4_DCG.append(0)
+
     i += 1
 
     print('M2 case -------')
@@ -203,4 +295,7 @@ for q in queries:
     print('')
     print('M3 case -------')
     print('M3 NDCG@5', getNDCG5(m3_DCG))
+    print('')
+    print('M4 case -------')
+    print('M4 NDCG@5', getNDCG5(m4_DCG))
     print('--------------------------------------')
