@@ -2,10 +2,11 @@ import json
 from collections import OrderedDict
 from bs4 import BeautifulSoup
 import re
-import networkx as nx
+#import networkx as nx
 import urllib2
 import datetime
 import time
+from urlparse import urlparse
 
 path1 = 'webpages_clean/'
 path2 = 'docs/'
@@ -56,6 +57,63 @@ def add_prs():
         json.dump(prmap, f)
 
 
+def is_valid(url):
+
+    result = False
+
+    # Get original url string
+    if type(url) == str:
+        # Ignore errors even if the string is not proper UTF-8 or has
+        # broken marker bytes.
+        # Python built-in function unicode() can do this.
+        original = unicode(url, "utf-8", errors="ignore")
+    else:
+        # Assume the value object has proper __unicode__() method
+        original = unicode(url)
+
+    parsed = urlparse(url)
+
+    # print "Validating url: [", original, "]"
+    # print "Parsed url: ", str(parsed)
+    # try:
+        # logging.info("Validating url: [" + original + "]")
+        # logging.info("Parsed url: " + parsed)
+    # except TypeError:
+    #    print ("TypeError for logging: ", TypeError.message)
+
+    if parsed.scheme not in set(["http", "https"]):
+
+        result = False
+
+        return result
+
+    try:
+        result = ".ics.uci.edu" in parsed.hostname \
+            and not re.match(".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
+                + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+                + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z"
+                + "|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv"
+                + "|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())\
+            and not re.match(".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
+                + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+                + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z"
+                + "|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv"
+                + "|rm|smil|wmv|swf|wma|zip|rar|gz)$", original.lower())\
+            and not re.match("^.*calendar.*$", parsed.path.lower()) \
+            and not re.match("^.*calendar.*$", original.lower()) \
+            and not re.match("^.*/[^/]{200,}$", parsed.path) \
+            and not re.match("^.*/[^/]{300,}$", original) \
+            and not re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", parsed.path.lower())\
+            and not re.match("^.*(/misc|/sites|/all|/themes|/modules|/profiles|/css|/field|/node|/theme){3}.*$", parsed.path.lower())
+
+        return result
+
+    except TypeError:
+        return False
+    except Exception as e:
+        return False
+
+
 def add_titles():
     # 1) Load the bookkeeping.json into dictionary
     print datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
@@ -74,8 +132,10 @@ def add_titles():
 
         if progress % 30 == 1:
             print "processed " + str(progress) + ", titles = " + str(titles)
+        if not is_valid('http://' + url):
+            continue
         try:
-            soup = BeautifulSoup(urllib2.urlopen('http://' + url, timeout=10), 'lxml')
+            soup = BeautifulSoup(urllib2.urlopen('http://' + url, timeout=3), 'lxml')
             title = soup.title.string
         except Exception as e:
             print "loading http://" + url
@@ -102,7 +162,7 @@ def add_titles():
        json.dump(bookkeeping, f)
 
 
-
+'''
 def start_pr():
     # 1) Generate the graph by replacing the urls by indexes
     # 1-1) Load the pagelinks.json into dictionary
@@ -146,7 +206,7 @@ def start_pr():
     print "Writing back the pr.json"
     with open('pr.json', 'w') as f:
         json.dump(pr, f)
-
+'''
 
 if __name__ == '__main__':
     # start_pr()
