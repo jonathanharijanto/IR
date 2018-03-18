@@ -41,7 +41,7 @@ def preprocess():
             index = pagelinks.keys().index('http://' + url)
             hits += 1
             try:
-                soup = BeautifulSoup(urllib2.urlopen('http://' + url))
+                soup = BeautifulSoup(urllib2.urlopen('http://' + url, timeout=10), 'lxml')
                 title = soup.title.string
             except Exception as e:
                 print e.message
