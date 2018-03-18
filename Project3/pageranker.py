@@ -93,18 +93,18 @@ def is_valid(url):
                 + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
                 + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z"
                 + "|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv"
-                + "|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())\
+                + "|rm|smil|wmv|swf|wma|zip|rar|gz|txt|datasets)$", parsed.path.lower())\
             and not re.match(".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4"
                 + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
                 + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z"
                 + "|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv"
-                + "|rm|smil|wmv|swf|wma|zip|rar|gz)$", original.lower())\
+                + "|rm|smil|wmv|swf|wma|zip|rar|gz|txt|datasets)$", original.lower())\
             and not re.match("^.*calendar.*$", parsed.path.lower()) \
             and not re.match("^.*calendar.*$", original.lower()) \
-            and not re.match("^.*/[^/]{200,}$", parsed.path) \
-            and not re.match("^.*/[^/]{300,}$", original) \
+            and not re.match("^.*/[^/]{10,}$", parsed.path) \
+            and not re.match("^.*/[^/]{10,}$", original) \
             and not re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", parsed.path.lower())\
-            and not re.match("^.*(/misc|/sites|/all|/themes|/modules|/profiles|/css|/field|/node|/theme){3}.*$", parsed.path.lower())
+            and not re.match("^.*(/misc|/sites|/all|/themes|/modules|/profiles|/css|/field|/node|/theme|/datasets|/dataset){3}.*$", parsed.path.lower())
 
         return result
 
@@ -132,23 +132,23 @@ def add_titles():
 
         if progress % 30 == 1:
             print "processed " + str(progress) + ", titles = " + str(titles)
-        if not is_valid('http://' + url):
-            continue
-        try:
-            soup = BeautifulSoup(urllib2.urlopen('http://' + url, timeout=3), 'lxml')
-            title = soup.title.string
-        except Exception as e:
-            print "loading http://" + url
-            print "error: " + e.message
-        if not (title and title.strip()):
-            title = filePath
-        else:
-            titles += 1
 
-        newval = {}
-        newval['url'] = url
-        newval['title'] = title
-        bookkeeping[filePath] = newval
+        if is_valid('http://' + url):
+            try:
+                soup = BeautifulSoup(urllib2.urlopen('http://' + url, timeout=3), 'lxml')
+                title = soup.title.string
+            except Exception as e:
+                print "loading http://" + url
+                print "error: " + e.message
+            if not (title and title.strip()):
+                title = filePath
+            else:
+                titles += 1
+
+            newval = {}
+            newval['url'] = url
+            newval['title'] = title
+            bookkeeping[filePath] = newval
 
         progress += 1
 
