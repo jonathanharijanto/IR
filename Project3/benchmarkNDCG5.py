@@ -125,7 +125,7 @@ def getDCG(r, k=5):
 
 def getNDCG5(DCGlist):
     print 'relevance:', DCGlist
-    iDCGlist = sorted(DCGlist, reverse=True)
+    iDCGlist = [3,3,3,3,3]
     if not getDCG(iDCGlist):
         print('Nothing is matched. all DCG numbers are 0.')
         return 0.
